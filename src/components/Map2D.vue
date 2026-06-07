@@ -3,7 +3,7 @@
     <div class="map-header">
       <div>
         <span class="panel-kicker">精确二维投影</span>
-        <h3>{{ details.title }}</h3>
+        <h3>{{ details.title }} <span class="title-note">精确计算</span></h3>
         <p>{{ details.titleEn }} · {{ details.property }}</p>
       </div>
       <div class="map-actions">
@@ -16,10 +16,6 @@
           >
             {{ mode.label }}
           </button>
-        </div>
-        <div class="map-badges">
-          <span>{{ familyLabel }}</span>
-          <span>{{ modeLabel }}</span>
         </div>
       </div>
     </div>
@@ -65,7 +61,6 @@ import * as d3 from 'd3';
 import * as topojson from 'topojson-client';
 import {
   DEG2RAD,
-  PROJECTION_FAMILIES,
   PROJECTION_MODES,
   getProjectionDetails,
   normalizeProjectionParams,
@@ -104,8 +99,6 @@ const params = computed(() =>
 );
 
 const details = computed(() => getProjectionDetails(props.projectionFamily, props.projectionMode));
-const familyLabel = computed(() => PROJECTION_FAMILIES[props.projectionFamily]?.label || '地图投影');
-const modeLabel = computed(() => PROJECTION_MODES[props.projectionMode]?.label || '投影模式');
 const modeOptions = Object.values(PROJECTION_MODES);
 
 const loadData = async () => {
@@ -432,13 +425,15 @@ onBeforeUnmount(() => {
   width: 100%;
   min-height: 100%;
   background: #ffffff;
+  color: #1f3346;
 }
 
 .map-header {
   display: flex;
   justify-content: space-between;
   gap: 16px;
-  padding: 16px 18px;
+  min-height: 126px;
+  padding: 17px 18px;
   border-bottom: 1px solid #dce5ec;
   background: #ffffff;
 }
@@ -446,22 +441,36 @@ onBeforeUnmount(() => {
 .panel-kicker {
   display: block;
   color: #607487;
-  font-family: Inter, "Noto Serif SC", sans-serif;
+  font-family: "Segoe UI", Arial, sans-serif;
   font-size: 0.72rem;
   font-weight: 800;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.1em;
 }
 
 .map-header h3 {
   margin: 5px 0 3px;
   color: #12293d;
-  font-size: 1.18rem;
+  font-size: 1.24rem;
+  line-height: 1.32;
+}
+
+.title-note {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  padding: 2px 7px;
+  border: 1px solid #d8e2ea;
+  background: #f4f8fb;
+  color: #536b7c;
+  font-size: 0.78rem;
+  font-weight: 700;
+  vertical-align: 0.12em;
 }
 
 .map-header p {
   margin: 0;
   color: #66798a;
-  font-size: 0.84rem;
+  font-size: 0.9rem;
 }
 
 .map-actions {
@@ -472,8 +481,7 @@ onBeforeUnmount(() => {
   flex-shrink: 0;
 }
 
-.mode-tabs,
-.map-badges {
+.mode-tabs {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
@@ -484,9 +492,16 @@ onBeforeUnmount(() => {
   border: 1px solid #c6d5e0;
   background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
   color: #24475f;
-  padding: 7px 10px;
-  font-size: 0.8rem;
+  padding: 9px 13px;
+  font-size: 0.86rem;
   font-weight: 800;
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.mode-tabs button:hover {
+  transform: translateY(-1px);
+  border-color: #8fb0c6;
+  box-shadow: 0 1px 3px rgba(31, 51, 70, 0.08);
 }
 
 .mode-tabs button.active {
@@ -495,19 +510,10 @@ onBeforeUnmount(() => {
   color: #ffffff;
 }
 
-.map-badges span {
-  border: 1px solid #cbdbe6;
-  background: #f6fafc;
-  color: #24475f;
-  padding: 6px 8px;
-  font-size: 0.78rem;
-  font-weight: 700;
-}
-
 .map-canvas {
   position: relative;
   flex: 1;
-  min-height: 500px;
+  min-height: 520px;
   background:
     linear-gradient(90deg, rgba(199, 215, 227, 0.32) 1px, transparent 1px),
     linear-gradient(0deg, rgba(199, 215, 227, 0.32) 1px, transparent 1px),
@@ -518,50 +524,50 @@ onBeforeUnmount(() => {
 
 .scale-overlay {
   position: absolute;
-  top: 14px;
-  left: 14px;
+  top: 12px;
+  left: 12px;
   z-index: 4;
-  width: min(280px, calc(100% - 28px));
-  padding: 10px 12px;
-  border: 1px solid #cbdbe6;
-  background: rgba(255, 255, 255, 0.94);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  backdrop-filter: blur(8px);
+  width: min(210px, calc(100% - 24px));
+  padding: 0;
+  color: #173047;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.95);
 }
 
 .scale-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 8px;
+  gap: 8px;
+  margin-bottom: 5px;
 }
 
 .scale-head span {
   color: #173047;
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   font-weight: 800;
 }
 
 .scale-head input {
-  width: 64px;
-  border: 1px solid #bfd1df;
-  background: #ffffff;
+  width: 52px;
+  border: 1px solid rgba(117, 143, 160, 0.48);
+  background: rgba(247, 250, 252, 0.5);
   color: #173047;
-  padding: 4px 5px;
+  padding: 2px 4px;
+  font-size: 0.78rem;
   text-align: center;
 }
 
 .scale-overlay input[type="range"] {
   width: 100%;
   accent-color: #245a7d;
+  opacity: 0.82;
 }
 
 .map-canvas svg {
   display: block;
   width: 100%;
   height: 100%;
-  min-height: 500px;
+  min-height: 520px;
 }
 
 .map-status {
@@ -572,7 +578,7 @@ onBeforeUnmount(() => {
   border: 1px solid #d5e2eb;
   background: rgba(255, 255, 255, 0.92);
   color: #405466;
-  font-size: 0.82rem;
+  font-size: 0.88rem;
 }
 
 .projection-notes {
@@ -595,19 +601,20 @@ onBeforeUnmount(() => {
 .projection-notes h4 {
   margin: 0 0 5px;
   color: #173047;
-  font-size: 0.88rem;
+  font-size: 0.94rem;
 }
 
 .projection-notes p {
   margin: 0;
   color: #607487;
-  font-size: 0.78rem;
+  font-size: 0.84rem;
   line-height: 1.55;
 }
 
 @media (max-width: 900px) {
   .map-header {
     flex-direction: column;
+    min-height: auto;
   }
 
   .map-actions {

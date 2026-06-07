@@ -20,16 +20,16 @@
     </header>
 
     <main class="main-content">
-      <section class="comparison-grid">
+      <section class="workspace-grid">
         <article class="view-panel scene-panel">
           <div class="panel-head">
             <div>
               <span class="eyebrow">三维示意</span>
-              <h2>承影面与投影射线</h2>
-              <p>三维图像用于解释投影逻辑和参数作用，承影面上的地图为教学示意。</p>
+              <h2>承影面与投影射线 <span class="title-note">原理示意</span></h2>
+              <p>用于解释投影几何关系与参数作用，承影面上的地图为教学示意。</p>
             </div>
             <div class="scene-tools">
-              <span class="view-chip"><Eye :size="15" /> 观察视角</span>
+              <span class="status-chip"><Eye :size="15" /> 可旋转观察</span>
               <button class="icon-button" @click="replayDemo" title="重新播放投影示意">
                 <RefreshCw :size="16" />
                 <span>重新演示</span>
@@ -51,6 +51,134 @@
           </div>
         </article>
 
+        <aside class="shared-parameter-panel" aria-label="共享投影参数">
+          <div class="section-title">
+            <div>
+              <span class="eyebrow">共享参数</span>
+              <h2>{{ currentFamily.label }} · {{ currentMode.label }}</h2>
+            </div>
+            <p>这些参数同时作用于左侧三维原理示意与右侧二维精确投影。</p>
+          </div>
+
+          <div class="parameter-column">
+            <section class="param-group">
+              <div class="group-head">
+                <Globe2 :size="18" />
+                <div>
+                  <h3>球体与投影中心参数</h3>
+                  <p>控制地球姿态、中央经线或投影中心位置。</p>
+                </div>
+              </div>
+
+              <template v-if="projectionFamily === 'planar'">
+                <label class="param-row">
+                  <span>
+                    投影中心经度
+                    <small>Longitude of Projection Center</small>
+                  </span>
+                  <input type="number" :value="projectionParams.projectionCenterLon" @change="setNumber('projectionCenterLon', $event)" />
+                </label>
+                <input class="range" type="range" min="-180" max="180" :value="projectionParams.projectionCenterLon" @input="setNumber('projectionCenterLon', $event)" />
+
+                <label class="param-row">
+                  <span>
+                    投影中心纬度
+                    <small>Latitude of Projection Center</small>
+                  </span>
+                  <input type="number" :value="projectionParams.projectionCenterLat" @change="setNumber('projectionCenterLat', $event)" />
+                </label>
+                <input class="range" type="range" min="-85" max="85" :value="projectionParams.projectionCenterLat" @input="setNumber('projectionCenterLat', $event)" />
+              </template>
+
+              <template v-else>
+                <label class="param-row">
+                  <span>
+                    中央经线
+                    <small>Central Meridian</small>
+                  </span>
+                  <input type="number" :value="projectionParams.centralMeridian" @change="setNumber('centralMeridian', $event)" />
+                </label>
+                <input class="range" type="range" min="-180" max="180" :value="projectionParams.centralMeridian" @input="setNumber('centralMeridian', $event)" />
+
+                <label class="param-row">
+                  <span>
+                    投影原点纬度
+                    <small>Latitude of Projection Origin</small>
+                  </span>
+                  <input type="number" :value="projectionParams.latitudeOfOrigin" @change="setNumber('latitudeOfOrigin', $event)" />
+                </label>
+                <input class="range" type="range" min="-80" max="80" :value="projectionParams.latitudeOfOrigin" @input="setNumber('latitudeOfOrigin', $event)" />
+
+                <div v-if="projectionFamily === 'cylinder'" class="segmented-field">
+                  <span>
+                    投影轴向
+                    <small>Projection Aspect</small>
+                  </span>
+                  <div class="segmented-control">
+                    <button :class="{ active: projectionParams.aspect === 'normal' }" @click="setParam('aspect', 'normal')">正轴</button>
+                    <button :class="{ active: projectionParams.aspect === 'transverse' }" @click="setParam('aspect', 'transverse')">横轴</button>
+                  </div>
+                </div>
+              </template>
+            </section>
+
+            <section class="param-group">
+              <div class="group-head">
+                <Cone :size="18" />
+                <div>
+                  <h3>承影面参数</h3>
+                  <p>控制圆柱、平面或圆锥与球体的相切/相割关系。</p>
+                </div>
+              </div>
+
+              <template v-if="projectionFamily === 'cylinder'">
+                <label class="param-row">
+                  <span>
+                    标准纬线 / 真比例纬线
+                    <small>Standard Parallel / Latitude of True Scale</small>
+                  </span>
+                  <input type="number" :value="projectionParams.standardParallel" @change="setNumber('standardParallel', $event)" />
+                </label>
+                <input class="range" type="range" min="0" max="75" :value="projectionParams.standardParallel" @input="setNumber('standardParallel', $event)" />
+                <p class="metric-note">{{ standardFeatures.label }}</p>
+              </template>
+
+              <template v-else-if="projectionFamily === 'planar'">
+                <label class="param-row">
+                  <span>
+                    标准圈角距
+                    <small>Standard Circle Angular Distance</small>
+                  </span>
+                  <input type="number" :value="projectionParams.standardCircleDistance" @change="setNumber('standardCircleDistance', $event)" />
+                </label>
+                <input class="range" type="range" min="0" max="75" :value="projectionParams.standardCircleDistance" @input="setNumber('standardCircleDistance', $event)" />
+                <p class="metric-note">{{ standardFeatures.label }}</p>
+              </template>
+
+              <template v-else>
+                <label class="param-row">
+                  <span>
+                    第一标准纬线
+                    <small>First Standard Parallel</small>
+                  </span>
+                  <input type="number" :value="projectionParams.standardParallel1" @change="setNumber('standardParallel1', $event)" />
+                </label>
+                <input class="range" type="range" min="-80" max="80" :value="projectionParams.standardParallel1" @input="setNumber('standardParallel1', $event)" />
+
+                <label class="param-row">
+                  <span>
+                    第二标准纬线
+                    <small>Second Standard Parallel</small>
+                  </span>
+                  <input type="number" :value="projectionParams.standardParallel2" @change="setNumber('standardParallel2', $event)" />
+                </label>
+                <input class="range" type="range" min="-80" max="80" :value="projectionParams.standardParallel2" @input="setNumber('standardParallel2', $event)" />
+                <p class="metric-note">{{ standardFeatures.label }}</p>
+              </template>
+            </section>
+          </div>
+        </aside>
+
         <article class="view-panel map-panel">
           <Map2D
             :projection-family="projectionFamily"
@@ -60,166 +188,16 @@
             @update:view-scale="setViewScale"
           />
         </article>
-      </section>
 
-      <section class="parameter-panel">
-        <div class="section-title">
-          <div>
-            <span class="eyebrow">参数调节区</span>
-            <h2>{{ currentFamily.label }} · {{ currentMode.label }}</h2>
+        <section class="param-group display-group scene-display-group">
+          <div class="group-head">
+            <Layers :size="18" />
+            <div>
+              <h3>三维教学辅助显示</h3>
+              <p>控制左侧三维示意元素的可见性。</p>
+            </div>
           </div>
-          <p>{{ currentFamily.description }}</p>
-        </div>
-
-        <div class="parameter-grid">
-          <section class="param-group">
-            <div class="group-head">
-              <Globe2 :size="18" />
-              <div>
-                <h3>球体与投影中心参数</h3>
-                <p>控制地球姿态、中央经线或投影中心位置。</p>
-              </div>
-            </div>
-
-            <template v-if="projectionFamily === 'planar'">
-              <label class="param-row">
-                <span>
-                  投影中心经度
-                  <small>Longitude of Projection Center</small>
-                </span>
-                <input type="number" :value="projectionParams.projectionCenterLon" @change="setNumber('projectionCenterLon', $event)" />
-              </label>
-              <input class="range" type="range" min="-180" max="180" :value="projectionParams.projectionCenterLon" @input="setNumber('projectionCenterLon', $event)" />
-
-              <label class="param-row">
-                <span>
-                  投影中心纬度
-                  <small>Latitude of Projection Center</small>
-                </span>
-                <input type="number" :value="projectionParams.projectionCenterLat" @change="setNumber('projectionCenterLat', $event)" />
-              </label>
-              <input class="range" type="range" min="-85" max="85" :value="projectionParams.projectionCenterLat" @input="setNumber('projectionCenterLat', $event)" />
-            </template>
-
-            <template v-else>
-              <label class="param-row">
-                <span>
-                  中央经线
-                  <small>Central Meridian</small>
-                </span>
-                <input type="number" :value="projectionParams.centralMeridian" @change="setNumber('centralMeridian', $event)" />
-              </label>
-              <input class="range" type="range" min="-180" max="180" :value="projectionParams.centralMeridian" @input="setNumber('centralMeridian', $event)" />
-
-              <label class="param-row">
-                <span>
-                  投影原点纬度
-                  <small>Latitude of Projection Origin</small>
-                </span>
-                <input type="number" :value="projectionParams.latitudeOfOrigin" @change="setNumber('latitudeOfOrigin', $event)" />
-              </label>
-              <input class="range" type="range" min="-80" max="80" :value="projectionParams.latitudeOfOrigin" @input="setNumber('latitudeOfOrigin', $event)" />
-
-              <div v-if="projectionFamily === 'cylinder'" class="segmented-field">
-                <span>
-                  投影轴向
-                  <small>Projection Aspect</small>
-                </span>
-                <div class="segmented-control">
-                  <button :class="{ active: projectionParams.aspect === 'normal' }" @click="setParam('aspect', 'normal')">正轴</button>
-                  <button :class="{ active: projectionParams.aspect === 'transverse' }" @click="setParam('aspect', 'transverse')">横轴</button>
-                </div>
-              </div>
-            </template>
-          </section>
-
-          <section class="param-group">
-            <div class="group-head">
-              <Cone :size="18" />
-              <div>
-                <h3>承影面参数</h3>
-                <p>控制圆柱、平面或圆锥与球体的相切/相割关系。</p>
-              </div>
-            </div>
-
-            <template v-if="projectionFamily === 'cylinder'">
-              <label class="param-row">
-                <span>
-                  标准纬线 / 真比例纬线
-                  <small>Standard Parallel / Latitude of True Scale</small>
-                </span>
-                <input type="number" :value="projectionParams.standardParallel" @change="setNumber('standardParallel', $event)" />
-              </label>
-              <input class="range" type="range" min="0" max="75" :value="projectionParams.standardParallel" @input="setNumber('standardParallel', $event)" />
-              <p class="metric-note">{{ standardFeatures.label }}</p>
-            </template>
-
-            <template v-else-if="projectionFamily === 'planar'">
-              <label class="param-row">
-                <span>
-                  标准圈角距
-                  <small>Standard Circle Angular Distance</small>
-                </span>
-                <input type="number" :value="projectionParams.standardCircleDistance" @change="setNumber('standardCircleDistance', $event)" />
-              </label>
-              <input class="range" type="range" min="0" max="75" :value="projectionParams.standardCircleDistance" @input="setNumber('standardCircleDistance', $event)" />
-              <p class="metric-note">{{ standardFeatures.label }}</p>
-            </template>
-
-            <template v-else>
-              <label class="param-row">
-                <span>
-                  第一标准纬线
-                  <small>First Standard Parallel</small>
-                </span>
-                <input type="number" :value="projectionParams.standardParallel1" @change="setNumber('standardParallel1', $event)" />
-              </label>
-              <input class="range" type="range" min="-80" max="80" :value="projectionParams.standardParallel1" @input="setNumber('standardParallel1', $event)" />
-
-              <label class="param-row">
-                <span>
-                  第二标准纬线
-                  <small>Second Standard Parallel</small>
-                </span>
-                <input type="number" :value="projectionParams.standardParallel2" @change="setNumber('standardParallel2', $event)" />
-              </label>
-              <input class="range" type="range" min="-80" max="80" :value="projectionParams.standardParallel2" @input="setNumber('standardParallel2', $event)" />
-              <p class="metric-note">{{ standardFeatures.label }}</p>
-            </template>
-          </section>
-
-          <section class="param-group">
-            <div class="group-head">
-              <Map :size="18" />
-              <div>
-                <h3>二维地图显示参数</h3>
-                <p>只影响二维图层显示，不改变投影数学定义。</p>
-              </div>
-            </div>
-
-            <label class="check-row">
-              <input type="checkbox" :checked="projectionParams.showGraticule" @change="setBoolean('showGraticule', $event)" />
-              <span>显示经纬网 <small>Graticule</small></span>
-            </label>
-            <label class="check-row">
-              <input type="checkbox" :checked="projectionParams.showStandardLine" @change="setBoolean('showStandardLine', $event)" />
-              <span>显示标准线/标准圈 <small>Standard Line / Circle</small></span>
-            </label>
-            <label class="check-row">
-              <input type="checkbox" :checked="projectionParams.showIndicatrix" @change="setBoolean('showIndicatrix', $event)" />
-              <span>显示变形椭圆 <small>Tissot Indicatrix</small></span>
-            </label>
-          </section>
-
-          <section class="param-group">
-            <div class="group-head">
-              <Layers :size="18" />
-              <div>
-                <h3>三维教学辅助显示</h3>
-                <p>控制三维示意元素的可见性。</p>
-              </div>
-            </div>
-
+          <div class="check-list">
             <label class="check-row">
               <input type="checkbox" :checked="projectionParams.showSurface" @change="setBoolean('showSurface', $event)" />
               <span>显示承影面 <small>Developable Surface</small></span>
@@ -236,8 +214,32 @@
               <input type="checkbox" :checked="projectionParams.showProjectedImage" @change="setBoolean('showProjectedImage', $event)" />
               <span>显示承影面示意图像 <small>Surface Image</small></span>
             </label>
-          </section>
-        </div>
+          </div>
+        </section>
+
+        <section class="param-group display-group map-display-group">
+          <div class="group-head">
+            <Map :size="18" />
+            <div>
+              <h3>二维地图显示参数</h3>
+              <p>只影响右侧二维图层显示，不改变投影数学定义。</p>
+            </div>
+          </div>
+          <div class="check-list">
+            <label class="check-row">
+              <input type="checkbox" :checked="projectionParams.showGraticule" @change="setBoolean('showGraticule', $event)" />
+              <span>显示经纬网 <small>Graticule</small></span>
+            </label>
+            <label class="check-row">
+              <input type="checkbox" :checked="projectionParams.showStandardLine" @change="setBoolean('showStandardLine', $event)" />
+              <span>显示标准线/标准圈 <small>Standard Line / Circle</small></span>
+            </label>
+            <label class="check-row">
+              <input type="checkbox" :checked="projectionParams.showIndicatrix" @change="setBoolean('showIndicatrix', $event)" />
+              <span>显示变形椭圆 <small>Tissot Indicatrix</small></span>
+            </label>
+          </div>
+        </section>
       </section>
     </main>
   </div>
@@ -324,8 +326,6 @@ const replayDemo = () => {
 </script>
 
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;700&family=Inter:wght@400;500;600;700;800&display=swap');
-
 * {
   box-sizing: border-box;
 }
@@ -339,9 +339,11 @@ body,
 }
 
 body {
-  background: #edf4f8;
-  color: #173047;
-  font-family: "Noto Serif SC", "Inter", sans-serif;
+  background: #eef4f7;
+  color: #1f3346;
+  font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", Arial, sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -356,7 +358,7 @@ button {
 
 .app-shell {
   min-height: 100vh;
-  background: #edf4f8;
+  background: #eef4f7;
 }
 
 .top-bar {
@@ -364,12 +366,12 @@ button {
   top: 0;
   z-index: 20;
   display: grid;
-  grid-template-columns: minmax(240px, 0.55fr) minmax(520px, 1.45fr);
-  gap: 18px;
+  grid-template-columns: minmax(260px, 0.42fr) minmax(620px, 1fr);
+  gap: 20px;
   align-items: center;
-  padding: 14px 22px;
+  padding: 12px 22px;
   background: rgba(255, 255, 255, 0.96);
-  border-bottom: 1px solid #cbdbe6;
+  border-bottom: 1px solid #ccd9e2;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   backdrop-filter: blur(12px);
 }
@@ -377,17 +379,17 @@ button {
 .brand-block h1 {
   margin: 4px 0 0;
   color: #12293d;
-  font-size: 1.2rem;
+  font-size: 1.28rem;
   line-height: 1.2;
 }
 
 .eyebrow {
   display: inline-block;
-  color: #607487;
-  font-family: Inter, "Noto Serif SC", sans-serif;
-  font-size: 0.7rem;
+  color: #5e7587;
+  font-family: "Segoe UI", Arial, sans-serif;
+  font-size: 0.72rem;
   font-weight: 800;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
@@ -402,16 +404,16 @@ button {
 .mode-tabs button,
 .segmented-control button,
 .icon-button {
-  border: 1px solid #c6d5e0;
+  border: 1px solid #c8d6df;
   background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-  color: #25465d;
-  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+  color: #24465e;
+  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
 }
 
 .family-tabs button {
   flex: 1;
   min-width: 0;
-  padding: 10px 12px;
+  padding: 11px 14px;
   text-align: left;
 }
 
@@ -423,13 +425,14 @@ button {
 .family-tabs button span {
   color: #173047;
   font-weight: 800;
+  font-size: 0.96rem;
 }
 
 .family-tabs button small {
   margin-top: 2px;
-  color: #6f8292;
-  font-family: Inter, sans-serif;
-  font-size: 0.72rem;
+  color: #64798a;
+  font-family: "Segoe UI", Arial, sans-serif;
+  font-size: 0.74rem;
   text-transform: uppercase;
 }
 
@@ -439,7 +442,7 @@ button {
 
 .mode-tabs button,
 .segmented-control button {
-  padding: 9px 12px;
+  padding: 9px 13px;
   font-weight: 800;
 }
 
@@ -449,6 +452,7 @@ button {
 .icon-button:hover {
   transform: translateY(-1px);
   border-color: #8fb0c6;
+  box-shadow: 0 1px 3px rgba(31, 51, 70, 0.08);
 }
 
 .family-tabs button.active,
@@ -467,22 +471,25 @@ button {
 .main-content {
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  padding: 18px 22px 28px;
+  gap: 16px;
+  padding: 16px 22px 24px;
 }
 
-.comparison-grid {
+.workspace-grid {
   display: grid;
-  grid-template-columns: minmax(460px, 1fr) minmax(460px, 1fr);
-  gap: 18px;
-  align-items: stretch;
+  grid-template-columns: minmax(410px, 1fr) minmax(300px, 360px) minmax(410px, 1fr);
+  grid-template-areas:
+    "scene shared map"
+    "sceneControls shared mapControls";
+  gap: 14px;
+  align-items: start;
 }
 
 .view-panel,
-.parameter-panel,
+.shared-parameter-panel,
 .param-group {
   background: #ffffff;
-  border: 1px solid #cbdbe6;
+  border: 1px solid #ccd9e2;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
@@ -491,11 +498,38 @@ button {
   overflow: hidden;
 }
 
+.scene-panel {
+  grid-area: scene;
+}
+
+.shared-parameter-panel {
+  grid-area: shared;
+  position: sticky;
+  top: 86px;
+  min-width: 0;
+  padding: 14px;
+}
+
+.map-panel {
+  grid-area: map;
+  display: flex;
+  min-height: 600px;
+}
+
+.scene-display-group {
+  grid-area: sceneControls;
+}
+
+.map-display-group {
+  grid-area: mapControls;
+}
+
 .panel-head {
   display: flex;
   justify-content: space-between;
   gap: 16px;
-  padding: 16px 18px;
+  min-height: 126px;
+  padding: 17px 18px;
   border-bottom: 1px solid #dce5ec;
   background: #ffffff;
 }
@@ -509,7 +543,21 @@ button {
 
 .panel-head h2 {
   margin-top: 5px;
-  font-size: 1.18rem;
+  font-size: 1.24rem;
+  line-height: 1.32;
+}
+
+.title-note {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  padding: 2px 7px;
+  border: 1px solid #d8e2ea;
+  background: #f4f8fb;
+  color: #536b7c;
+  font-size: 0.78rem;
+  font-weight: 700;
+  vertical-align: 0.12em;
 }
 
 .panel-head p,
@@ -517,8 +565,8 @@ button {
 .group-head p,
 .metric-note {
   margin: 5px 0 0;
-  color: #607487;
-  font-size: 0.84rem;
+  color: #5d7181;
+  font-size: 0.9rem;
   line-height: 1.5;
 }
 
@@ -530,26 +578,30 @@ button {
   gap: 8px;
 }
 
-.view-chip,
+.status-chip,
 .icon-button {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   min-height: 34px;
-  padding: 8px 10px;
-  border: 1px solid #cbdbe6;
-  background: #f6fafc;
-  color: #24475f;
-  font-size: 0.82rem;
+  padding: 8px 11px;
+  font-size: 0.86rem;
   font-weight: 800;
+}
+
+.status-chip {
+  border: 1px solid #d8e2ea;
+  background: #f6fafc;
+  color: #587083;
 }
 
 .icon-button {
   background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  color: #24475f;
 }
 
 .scene-stage {
-  height: 560px;
+  height: 600px;
   background:
     linear-gradient(90deg, rgba(199, 215, 227, 0.32) 1px, transparent 1px),
     linear-gradient(0deg, rgba(199, 215, 227, 0.32) 1px, transparent 1px),
@@ -567,49 +619,48 @@ button {
 }
 
 .surface-summary span {
-  padding: 7px 9px;
-  border: 1px solid #d8e5ee;
-  background: #f6fafc;
-  color: #405466;
-  font-size: 0.8rem;
+  padding: 6px 9px;
+  border-left: 3px solid #7b9bb0;
+  background: #f8fbfd;
+  color: #4e6374;
+  font-size: 0.86rem;
   font-weight: 700;
 }
 
-.map-panel {
-  display: flex;
-  min-height: 560px;
-}
-
-.parameter-panel {
-  padding: 18px;
-}
-
 .section-title {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 18px;
-  margin-bottom: 14px;
+  display: block;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e1e9ef;
 }
 
 .section-title h2 {
   margin-top: 5px;
-  font-size: 1.22rem;
+  font-size: 1.16rem;
+  line-height: 1.35;
 }
 
 .section-title p {
-  max-width: 720px;
+  max-width: none;
 }
 
-.parameter-grid {
+.parameter-column {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
 }
 
 .param-group {
   padding: 14px;
   min-width: 0;
+}
+
+.shared-parameter-panel .param-group {
+  border-color: #d8e2ea;
+  box-shadow: none;
+}
+
+.display-group {
+  padding: 13px 14px;
 }
 
 .group-head {
@@ -621,7 +672,8 @@ button {
 }
 
 .group-head h3 {
-  font-size: 0.98rem;
+  font-size: 1rem;
+  line-height: 1.35;
 }
 
 .param-row,
@@ -631,14 +683,14 @@ button {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-top: 10px;
+  margin-top: 11px;
 }
 
 .param-row span,
 .segmented-field > span,
 .check-row span {
   color: #173047;
-  font-size: 0.88rem;
+  font-size: 0.92rem;
   font-weight: 800;
 }
 
@@ -648,17 +700,17 @@ button {
   display: block;
   margin-top: 2px;
   color: #7b8e9d;
-  font-family: Inter, sans-serif;
-  font-size: 0.7rem;
+  font-family: "Segoe UI", Arial, sans-serif;
+  font-size: 0.73rem;
   font-weight: 600;
 }
 
 .param-row input[type="number"] {
-  width: 70px;
+  width: 74px;
   border: 1px solid #bfd1df;
   background: #ffffff;
   color: #173047;
-  padding: 5px 6px;
+  padding: 6px 7px;
   text-align: center;
 }
 
@@ -669,17 +721,28 @@ button {
 }
 
 .segmented-control button {
-  min-width: 54px;
+  min-width: 56px;
 }
 
 .check-row {
   justify-content: flex-start;
   align-items: flex-start;
+  margin-top: 0;
 }
 
 .check-row input {
   margin-top: 4px;
   accent-color: #245a7d;
+}
+
+.check-list {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.map-display-group .check-list {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .metric-note {
@@ -689,22 +752,41 @@ button {
   color: #8a3328;
 }
 
+@media (max-width: 1500px) {
+  .workspace-grid {
+    grid-template-columns: minmax(360px, 1fr) minmax(280px, 330px) minmax(360px, 1fr);
+  }
+}
+
 @media (max-width: 1320px) {
   .top-bar {
     grid-template-columns: 1fr;
   }
 
-  .parameter-grid {
+  .shared-parameter-panel {
+    top: 132px;
+  }
+}
+
+@media (max-width: 1180px) {
+  .workspace-grid {
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "scene map"
+      "shared shared"
+      "sceneControls mapControls";
+  }
+
+  .shared-parameter-panel {
+    position: static;
+  }
+
+  .parameter-column {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 980px) {
-  .comparison-grid,
-  .parameter-grid {
-    grid-template-columns: 1fr;
-  }
-
   .scene-stage,
   .map-panel {
     min-height: 500px;
@@ -718,9 +800,25 @@ button {
     min-width: 150px;
   }
 
-  .section-title,
   .panel-head {
     flex-direction: column;
+    min-height: auto;
+  }
+
+  .workspace-grid {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "scene"
+      "sceneControls"
+      "shared"
+      "map"
+      "mapControls";
+  }
+
+  .parameter-column,
+  .check-list,
+  .map-display-group .check-list {
+    grid-template-columns: 1fr;
   }
 }
 </style>
