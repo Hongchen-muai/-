@@ -440,7 +440,7 @@ const redrawScene = () => {
 };
 
 const loadGeoJSON = async () => {
-  const response = await fetch('/world-110m.json');
+  const response = await fetch(`${import.meta.env.BASE_URL}world-110m.json`);
   if (!response.ok) throw new Error(`Failed to load world data: ${response.status}`);
   const topology = await response.json();
   const landObject = topology.objects.land || topology.objects.countries;
