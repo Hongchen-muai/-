@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test:math": "node scripts/test-map-math.js"
+    "test:math": "node scripts/test-map-math.js && node scripts/test-projection-model.js",
+    "test:tour": "node scripts/test-onboarding.js",
+    "test": "npm run test:math && node scripts/test-scene-presentation.js"
   },
   "dependencies": {
     "d3": "^7.9.0",

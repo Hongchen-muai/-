@@ -1,0 +1,406 @@
+{
+  "date": "2026-09-06",
+  "mathAssertions": 104462,
+  "projOracle": {
+    "namedCoordinateCases": 84,
+    "maxErrorInEarthRadii": 2.55e-15
+  },
+  "desktopCases": [
+    {
+      "name": "conic-conformal-flat",
+      "nonblankPixels": 19565
+    },
+    {
+      "name": "conic-conformal-surface",
+      "nonblankPixels": 15674
+    },
+    {
+      "name": "conic-conformal-mapped",
+      "nonblankPixels": 41087
+    },
+    {
+      "name": "conic-equalArea-surface",
+      "nonblankPixels": 14150
+    },
+    {
+      "name": "conic-equalArea-mapped",
+      "nonblankPixels": 43317
+    },
+    {
+      "name": "conic-equalArea-flat",
+      "nonblankPixels": 20499
+    },
+    {
+      "name": "conic-compromise-surface",
+      "nonblankPixels": 15492
+    },
+    {
+      "name": "conic-compromise-mapped",
+      "nonblankPixels": 40651
+    },
+    {
+      "name": "conic-compromise-flat",
+      "nonblankPixels": 20422
+    },
+    {
+      "name": "cylinder-conformal-surface",
+      "nonblankPixels": 31796
+    },
+    {
+      "name": "cylinder-conformal-mapped",
+      "nonblankPixels": 34290
+    },
+    {
+      "name": "cylinder-conformal-flat",
+      "nonblankPixels": 17616
+    },
+    {
+      "name": "cylinder-equalArea-surface",
+      "nonblankPixels": 18780
+    },
+    {
+      "name": "cylinder-equalArea-mapped",
+      "nonblankPixels": 28315
+    },
+    {
+      "name": "cylinder-equalArea-flat",
+      "nonblankPixels": 15332
+    },
+    {
+      "name": "cylinder-compromise-surface",
+      "nonblankPixels": 34604
+    },
+    {
+      "name": "cylinder-compromise-mapped",
+      "nonblankPixels": 37570
+    },
+    {
+      "name": "cylinder-compromise-flat",
+      "nonblankPixels": 16232
+    },
+    {
+      "name": "planar-conformal-surface",
+      "nonblankPixels": 1808
+    },
+    {
+      "name": "planar-conformal-mapped",
+      "nonblankPixels": 9661
+    },
+    {
+      "name": "planar-conformal-flat",
+      "nonblankPixels": 9138
+    },
+    {
+      "name": "planar-equalArea-surface",
+      "nonblankPixels": 2474
+    },
+    {
+      "name": "planar-equalArea-mapped",
+      "nonblankPixels": 9525
+    },
+    {
+      "name": "planar-equalArea-flat",
+      "nonblankPixels": 8698
+    },
+    {
+      "name": "planar-compromise-surface",
+      "nonblankPixels": 3100
+    },
+    {
+      "name": "planar-compromise-mapped",
+      "nonblankPixels": 8612
+    },
+    {
+      "name": "planar-compromise-flat",
+      "nonblankPixels": 8457
+    },
+    {
+      "name": "planar-conformal-asia-secant-mapped",
+      "nonblankPixels": 13377
+    },
+    {
+      "name": "planar-conformal-asia-secant-flat",
+      "nonblankPixels": 14437
+    },
+    {
+      "name": "planar-equalArea-asia-secant-mapped",
+      "nonblankPixels": 16210
+    },
+    {
+      "name": "planar-equalArea-asia-secant-flat",
+      "nonblankPixels": 17417
+    },
+    {
+      "name": "planar-compromise-asia-secant-mapped",
+      "nonblankPixels": 17378
+    },
+    {
+      "name": "planar-compromise-asia-secant-flat",
+      "nonblankPixels": 20734
+    },
+    {
+      "name": "planar-conformal-north-pole",
+      "nonblankPixels": 15491
+    },
+    {
+      "name": "planar-equalArea-north-pole",
+      "nonblankPixels": 19364
+    },
+    {
+      "name": "planar-compromise-north-pole",
+      "nonblankPixels": 24540
+    },
+    {
+      "name": "planar-orthographic-south-pole",
+      "nonblankPixels": 13941
+    },
+    {
+      "name": "cylinder-conformal-secant-asia",
+      "nonblankPixels": 20651
+    },
+    {
+      "name": "cylinder-equalArea-secant-asia",
+      "nonblankPixels": 20214
+    },
+    {
+      "name": "cylinder-compromise-secant-asia",
+      "nonblankPixels": 23945
+    },
+    {
+      "name": "cylinder-conformal-transverse-mapped",
+      "nonblankPixels": 42507
+    },
+    {
+      "name": "cylinder-conformal-transverse-flat",
+      "nonblankPixels": 16050
+    },
+    {
+      "name": "cylinder-equalArea-transverse-mapped",
+      "nonblankPixels": 18870
+    },
+    {
+      "name": "cylinder-equalArea-transverse-flat",
+      "nonblankPixels": 15723
+    },
+    {
+      "name": "cylinder-compromise-transverse-mapped",
+      "nonblankPixels": 23348
+    },
+    {
+      "name": "cylinder-compromise-transverse-flat",
+      "nonblankPixels": 16660
+    },
+    {
+      "name": "conic-conformal-south-mapped",
+      "nonblankPixels": 21028
+    },
+    {
+      "name": "conic-conformal-south-flat",
+      "nonblankPixels": 17156
+    },
+    {
+      "name": "conic-equalArea-south-mapped",
+      "nonblankPixels": 20799
+    },
+    {
+      "name": "conic-equalArea-south-flat",
+      "nonblankPixels": 18211
+    },
+    {
+      "name": "conic-compromise-south-mapped",
+      "nonblankPixels": 21782
+    },
+    {
+      "name": "conic-compromise-south-flat",
+      "nonblankPixels": 17254
+    },
+    {
+      "name": "conic-conformal-tangent",
+      "nonblankPixels": 40128
+    },
+    {
+      "name": "planar-stereographic-orbit",
+      "nonblankPixels": 16578
+    },
+    {
+      "name": "conic-near-cylinder-mapped",
+      "nonblankPixels": 22712
+    },
+    {
+      "name": "conic-near-cylinder-flat",
+      "nonblankPixels": 14630
+    }
+  ],
+  "mobileCases": [
+    {
+      "name": "mobile-390-cylinder-conformal",
+      "canvasPixels": 13628,
+      "overflow": []
+    },
+    {
+      "name": "mobile-390-cylinder-equalArea",
+      "canvasPixels": 9984,
+      "overflow": []
+    },
+    {
+      "name": "mobile-390-cylinder-compromise",
+      "canvasPixels": 11353,
+      "overflow": []
+    },
+    {
+      "name": "mobile-390-planar-conformal",
+      "canvasPixels": 7343,
+      "overflow": []
+    },
+    {
+      "name": "mobile-390-planar-equalArea",
+      "canvasPixels": 7303,
+      "overflow": []
+    },
+    {
+      "name": "mobile-390-planar-compromise",
+      "canvasPixels": 6790,
+      "overflow": []
+    },
+    {
+      "name": "mobile-390-conic-conformal",
+      "canvasPixels": 12652,
+      "overflow": []
+    },
+    {
+      "name": "mobile-390-conic-equalArea",
+      "canvasPixels": 13614,
+      "overflow": []
+    },
+    {
+      "name": "mobile-390-conic-compromise",
+      "canvasPixels": 12779,
+      "overflow": []
+    }
+  ],
+  "layerControls": [
+    {
+      "name": "辅助投影面 Auxiliary Surface",
+      "canvasChanged": 53087,
+      "svgChanged": false
+    },
+    {
+      "name": "坐标映射连线 Coordinate Mapping",
+      "canvasChanged": 210,
+      "svgChanged": false
+    },
+    {
+      "name": "投影地图 Projected Map",
+      "canvasChanged": 11832,
+      "svgChanged": false
+    },
+    {
+      "name": "显示经纬网 Graticule",
+      "canvasChanged": 9852,
+      "svgChanged": true
+    },
+    {
+      "name": "标准线（真比例） Reference Geometry",
+      "canvasChanged": 2506,
+      "svgChanged": true
+    },
+    {
+      "name": "显示变形椭圆 Tissot Indicatrix",
+      "canvasChanged": 0,
+      "svgChanged": true
+    }
+  ],
+  "replayCases": [
+    {
+      "name": "cylinder-conformal",
+      "mappingToEnd": 153866,
+      "intermediateToEnd": 153420
+    },
+    {
+      "name": "cylinder-equalArea",
+      "mappingToEnd": 140186,
+      "intermediateToEnd": 145311
+    },
+    {
+      "name": "cylinder-compromise",
+      "mappingToEnd": 131367,
+      "intermediateToEnd": 133540
+    },
+    {
+      "name": "planar-conformal",
+      "mappingToEnd": 56771,
+      "intermediateToEnd": 59182
+    },
+    {
+      "name": "planar-equalArea",
+      "mappingToEnd": 70779,
+      "intermediateToEnd": 68027
+    },
+    {
+      "name": "planar-compromise",
+      "mappingToEnd": 76550,
+      "intermediateToEnd": 70964
+    },
+    {
+      "name": "conic-conformal",
+      "mappingToEnd": 82015,
+      "intermediateToEnd": 80583
+    },
+    {
+      "name": "conic-equalArea",
+      "mappingToEnd": 89433,
+      "intermediateToEnd": 91726
+    },
+    {
+      "name": "conic-compromise",
+      "mappingToEnd": 83165,
+      "intermediateToEnd": 84664
+    }
+  ],
+  "navigation": [
+    {
+      "button": "上一阶段",
+      "step": "1"
+    },
+    {
+      "button": "上一阶段",
+      "step": "0"
+    },
+    {
+      "button": "下一阶段",
+      "step": "1"
+    },
+    {
+      "button": "下一阶段",
+      "step": "2"
+    }
+  ],
+  "modeSwitchDuringAnimation": {
+    "playing": "false",
+    "projection": "conic/equalArea",
+    "step": "1"
+  },
+  "zoomRefitBounds": {
+    "before": [
+      35,
+      93,
+      480,
+      374
+    ],
+    "after": [
+      35,
+      94,
+      480,
+      374
+    ]
+  },
+  "nearSymmetricConic": {
+    "parallels": [
+      30,
+      -29.999
+    ],
+    "referenceLineSegments": 2
+  },
+  "build": "passed",
+  "applicationConsoleErrors": []
+}

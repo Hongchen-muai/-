@@ -72,9 +72,7 @@ const normalizedConic = normalizeProjectionParams('conic', 'equalArea', {
   standardParallel1: 20,
   standardParallel2: -40
 });
-assert.ok(
-  normalizedConic.standardParallel1 * normalizedConic.standardParallel2 > 0,
-  'Conic standard parallels should be normalized into one hemisphere'
-);
+assert.equal(normalizedConic.standardParallel2, -40, 'Valid standard parallels must not be silently moved to another hemisphere');
+assert.equal(normalizeProjectionParams('conic', 'conformal', { standardParallel1: 30, standardParallel2: 30 }).standardParallel2, 30, 'Tangent conic parameters must remain identical');
 
 console.log('mapMath regression checks passed');

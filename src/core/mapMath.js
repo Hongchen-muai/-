@@ -1,3 +1,5 @@
+import { geoConicConformalRaw, geoConicEqualAreaRaw, geoConicEquidistantRaw } from 'd3';
+
 export const DEG2RAD = Math.PI / 180;
 export const RAD2DEG = 180 / Math.PI;
 
@@ -6,19 +8,19 @@ export const PROJECTION_FAMILIES = {
     key: 'cylinder',
     label: '圆柱投影',
     labelEn: 'Cylindrical',
-    description: '以圆柱作为承影面，适合讲解经纬网展开、标准纬线与圆柱半径之间的关系。'
+    description: '以圆柱作为辅助投影面，经纬网按投影公式映射后展开。'
   },
   planar: {
     key: 'planar',
-    label: '平面/方位投影',
-    labelEn: 'Planar / Azimuthal',
-    description: '以平面作为承影面，围绕投影中心展示切平面、割平面和半球裁切。'
+    label: '方位投影',
+    labelEn: 'Azimuthal',
+    description: '以平面作为辅助投影面，方位角与距中心的径向函数共同确定坐标。'
   },
   conic: {
     key: 'conic',
     label: '圆锥投影',
     labelEn: 'Conic',
-    description: '以圆锥作为承影面，适合中纬度东西向区域和双标准纬线教学。'
+    description: '以圆锥作为辅助投影面，标准纬线决定圆锥常数与径向函数。'
   }
 };
 
@@ -49,22 +51,22 @@ export const PROJECTION_CONFIG = {
       distortion: '保持面积比例，但高纬形状被压缩，标准纬线附近形状变形较小。'
     },
     compromise: {
-      title: '等距圆柱投影 / 经纬网投影',
-      titleEn: 'Plate Carrée / Equidistant Cylindrical',
+      title: '等距圆柱投影',
+      titleEn: 'Equidistant Cylindrical',
       property: '等距圆柱投影',
       d3Name: 'geoProjection',
       history: '经纬网投影是最直观的经纬度到平面直角坐标映射，古典制图和栅格数据展示中长期使用。',
       usage: '适合教学、经纬度栅格数据快速查看和全球数据索引，不适合作为精确量测地图。',
-      distortion: '经纬线间隔规则，沿标准纬线方向比例较真实，远离标准纬线后面积和形状变形明显。'
+      distortion: '沿经线的长度比例为 1，标准纬线上的长度比例为 1；不保持任意两点间距离，也不保持面积或角度。'
     }
   },
   planar: {
     conformal: {
-      title: '极射赤面投影',
+      title: '球面立体投影',
       titleEn: 'Stereographic',
       property: '等角方位投影',
       d3Name: 'geoStereographic',
-      history: '极射赤面投影在古典天文学、星图和极区制图中使用很早，也与复变函数几何有密切关系。',
+      history: '立体投影在古典天文学、星图和极区制图中使用很早，也与复变函数几何有密切关系。',
       usage: '适合极区、半球附近和需要保持局部角度关系的地图。',
       distortion: '保持局部角度，离投影中心越远面积和距离放大越明显，对跖点附近趋向无穷。'
     },
@@ -80,7 +82,7 @@ export const PROJECTION_CONFIG = {
     compromise: {
       title: '正射投影',
       titleEn: 'Orthographic',
-      property: '透视外观方位投影',
+      property: '平行透视方位投影',
       d3Name: 'geoOrthographic',
       history: '正射投影模拟从无限远处观察地球的平行投影，是天文学和地球外观表达中的经典方法。',
       usage: '适合展示半球外观、空间视角和直观的地球表面位置关系。',
@@ -113,7 +115,7 @@ export const PROJECTION_CONFIG = {
       d3Name: 'geoConicEquidistant',
       history: '等距圆锥投影是经典圆锥投影之一，因公式直接、距离特性清晰，常用于教学和区域制图。',
       usage: '适合需要表达沿经线方向距离关系的中纬度区域地图。',
-      distortion: '沿经线方向距离保持较好，标准纬线处比例真实，但不保持整体面积或角度。'
+      distortion: '沿经线及标准纬线的长度比例为 1；不保持任意两点间距离，也不保持面积或角度。'
     }
   }
 };
@@ -145,8 +147,28 @@ const finiteNumber = (value, fallback) => {
   return Number.isFinite(number) ? number : fallback;
 };
 
-export const getProjectionDetails = (family, mode) =>
-  PROJECTION_CONFIG[family]?.[mode] || PROJECTION_CONFIG.cylinder.conformal;
+export const getProjectionDetails = (family, mode, params = {}) => {
+  const details = { ...(PROJECTION_CONFIG[family]?.[mode] || PROJECTION_CONFIG.cylinder.conformal) };
+  if (family === 'cylinder') {
+    const p = normalizeProjectionParams(family, mode, params);
+    if (mode === 'equalArea' && p.standardParallel !== 0) {
+      details.title = '圆柱等面积投影';
+      details.titleEn = 'Cylindrical Equal-Area';
+    }
+    if (mode === 'compromise' && p.standardParallel === 0) {
+      details.title = '等距圆柱投影（方格网）';
+      details.titleEn = 'Plate Carrée';
+    }
+    if (p.aspect === 'transverse') {
+      details.title = mode === 'conformal' ? '横轴墨卡托投影（球面）' : `横轴${mode === 'equalArea' ? '圆柱等面积' : '等距圆柱'}投影`;
+      details.titleEn = `Transverse ${mode === 'conformal' ? 'Mercator' : mode === 'equalArea' ? 'Cylindrical Equal-Area' : 'Equidistant Cylindrical'}`;
+      details.history = '由相应正轴圆柱投影作球面轴向变换得到，以重新选定的球面极轴建立坐标；并非直接旋转一幅已经绘制的平面地图。';
+      details.usage = '球面横轴模型，适合中央经线附近的南北向区域；不是采用参考椭球与分带参数的 UTM 坐标系。';
+      details.distortion = mode === 'conformal' ? '保持局部角度；远离中央经线变形增大，距轴向赤道 90° 处出现奇点。' : '性质作用于旋转后的球面坐标；红线为轴向标准线，不是地理纬线。';
+    }
+  }
+  return details;
+};
 
 export const normalizeProjectionParams = (family = 'cylinder', mode = 'conformal', params = {}) => {
   const source = { ...DEFAULT_PARAMS, ...params };
@@ -154,7 +176,7 @@ export const normalizeProjectionParams = (family = 'cylinder', mode = 'conformal
     centralMeridian: clamp(finiteNumber(source.centralMeridian, 0), -180, 180),
     latitudeOfOrigin: clamp(finiteNumber(source.latitudeOfOrigin, 0), -80, 80),
     projectionCenterLon: clamp(finiteNumber(source.projectionCenterLon, source.centralMeridian ?? 0), -180, 180),
-    projectionCenterLat: clamp(finiteNumber(source.projectionCenterLat, source.latitudeOfOrigin ?? 0), -85, 85),
+    projectionCenterLat: clamp(finiteNumber(source.projectionCenterLat, source.latitudeOfOrigin ?? 0), -90, 90),
     standardParallel: clamp(Math.abs(finiteNumber(source.standardParallel, 0)), 0, 75),
     standardParallel1: clamp(finiteNumber(source.standardParallel1, 25), -80, 80),
     standardParallel2: clamp(finiteNumber(source.standardParallel2, 47), -80, 80),
@@ -176,24 +198,8 @@ export const normalizeProjectionParams = (family = 'cylinder', mode = 'conformal
   }
 
   if (family === 'conic') {
-    const minAbsParallel = 1;
     let phi1 = normalized.standardParallel1;
     let phi2 = normalized.standardParallel2;
-
-    if (Math.abs(phi1) < minAbsParallel) phi1 = phi1 < 0 ? -minAbsParallel : minAbsParallel;
-    if (Math.abs(phi2) < minAbsParallel) phi2 = phi2 < 0 ? -minAbsParallel : minAbsParallel;
-
-    if (phi1 * phi2 < 0) {
-      phi2 = Math.sign(phi1 || 1) * Math.abs(phi2);
-    }
-
-    if (Math.abs(phi1 - phi2) < 0.5) {
-      const direction = phi1 >= 0 ? 1 : -1;
-      phi2 = clamp(phi1 + direction * 0.5, -80, 80);
-      if (Math.abs(phi1 - phi2) < 0.5) {
-        phi1 = clamp(phi2 - direction * 0.5, -80, 80);
-      }
-    }
 
     normalized.standardParallel1 = phi1;
     normalized.standardParallel2 = phi2;
@@ -215,32 +221,37 @@ export const normalizeProjectionParams = (family = 'cylinder', mode = 'conformal
 
 export const mercatorRaw = (standardParallel = 0) => {
   const k0 = Math.max(0.05, Math.cos(standardParallel * DEG2RAD));
-  return (lambda, phi) => {
-    const clampedPhi = clamp(phi, -85 * DEG2RAD, 85 * DEG2RAD);
+  const raw = (lambda, phi) => {
     return [
       k0 * lambda,
-      k0 * Math.log(Math.tan(Math.PI / 4 + clampedPhi / 2))
+      k0 * Math.asinh(Math.tan(phi))
     ];
   };
+  raw.invert = (x, y) => [x / k0, Math.atan(Math.sinh(y / k0))];
+  return raw;
 };
 
 export const cylindricalEqualAreaRaw = (standardParallel = 0) => {
   const cosStandard = Math.max(0.05, Math.cos(standardParallel * DEG2RAD));
-  return (lambda, phi) => [
+  const raw = (lambda, phi) => [
     lambda * cosStandard,
     Math.sin(phi) / cosStandard
   ];
+  raw.invert = (x, y) => [x / cosStandard, Math.asin(clamp(y * cosStandard, -1, 1))];
+  return raw;
 };
 
 export const equidistantCylindricalRaw = (standardParallel = 0) => {
   const cosStandard = Math.max(0.05, Math.cos(standardParallel * DEG2RAD));
-  return (lambda, phi) => [
+  const raw = (lambda, phi) => [
     lambda * cosStandard,
     phi
   ];
+  raw.invert = (x, y) => [x / cosStandard, y];
+  return raw;
 };
 
-export const getStandardFeatures = (family, params) => {
+export const getStandardFeatures = (family, params, mode = 'conformal') => {
   const normalized = normalizeProjectionParams(family, 'conformal', params);
 
   if (family === 'cylinder') {
@@ -248,7 +259,9 @@ export const getStandardFeatures = (family, params) => {
     return {
       type: 'latitudes',
       values: lat === 0 ? [0] : [lat, -lat],
-      label: lat === 0 ? '相切圆柱：赤道为标准纬线' : `相割圆柱：±${lat.toFixed(1)}° 为标准纬线`
+      label: normalized.aspect === 'transverse'
+        ? `轴向标准线：旋转后纬度 ±${lat.toFixed(1)}°，不是地理纬线`
+        : lat === 0 ? '标准纬线：赤道（纬度 0°）' : `割线纬度：±${lat.toFixed(1)}°，沿纬线长度比例为 1`
     };
   }
 
@@ -259,14 +272,16 @@ export const getStandardFeatures = (family, params) => {
     return {
       type: 'latitudes',
       values: [...new Set(values)],
-      label: values.length > 1 ? '相割圆锥：双标准纬线' : '相切圆锥：单标准纬线'
+      label: new Set(values).size > 1 ? '双标准纬线：沿这两条纬线的长度比例为 1' : '单标准纬线：两参数相等，为相切形式'
     };
   }
 
   return {
     type: 'circle',
     values: [normalized.standardCircleDistance],
-    label: normalized.standardCircleDistance === 0 ? '切平面：投影中心为标准点' : `割平面：${normalized.standardCircleDistance.toFixed(1)}° 标准圈`
+    label: normalized.standardCircleDistance === 0 ? '辅助平面在投影中心相切'
+      : mode === 'conformal' ? `交圈角距 ${normalized.standardCircleDistance.toFixed(1)}°；该圈局部长度比例为 1`
+        : `辅助平面交圈角距 ${normalized.standardCircleDistance.toFixed(1)}°；交圈不是无变形圈`
   };
 };
 
@@ -283,32 +298,35 @@ export const getConicConstants = (mode, standardParallel1, standardParallel2) =>
     const n = sameParallel
       ? Math.sin(phi1)
       : Math.log(Math.cos(phi1) / Math.cos(phi2)) / Math.log(t(phi2) / t(phi1));
-    const safeN = Math.abs(n) < 1e-6 ? (n < 0 ? -1e-6 : 1e-6) : n;
+    if (Math.abs(n) < 1e-7) return { n: 0, k: Math.cos(phi1) };
+    const safeN = n;
     const F = Math.cos(phi1) * Math.pow(t(phi1), safeN) / safeN;
     return { n: safeN, F, rho0: F };
   }
 
   if (mode === 'equalArea') {
     const n = sameParallel ? Math.sin(phi1) : 0.5 * (Math.sin(phi1) + Math.sin(phi2));
-    const safeN = Math.abs(n) < 1e-6 ? (n < 0 ? -1e-6 : 1e-6) : n;
+    if (Math.abs(n) < 1e-7) return { n: 0, k: Math.cos(phi1) };
+    const safeN = n;
     const C = Math.cos(phi1) ** 2 + 2 * safeN * Math.sin(phi1);
     return { n: safeN, C, rho0: Math.sqrt(Math.max(0.0001, C)) / safeN };
   }
 
   const n = sameParallel ? Math.sin(phi1) : (Math.cos(phi1) - Math.cos(phi2)) / (phi2 - phi1);
-  const safeN = Math.abs(n) < 1e-6 ? (n < 0 ? -1e-6 : 1e-6) : n;
+  if (Math.abs(n) < 1e-7) return { n: 0, k: Math.cos(phi1) };
+  const safeN = n;
   const G = Math.cos(phi1) / safeN + phi1;
   return { n: safeN, G, rho0: G };
 };
 
 const getConicRho = (phi, mode, constants, scale = 1) => {
   if (mode === 'conformal') {
-    const clampedPhi = clamp(phi, -85 * DEG2RAD, 85 * DEG2RAD);
+    const clampedPhi = clamp(phi, -Math.PI / 2 + 1e-9, Math.PI / 2 - 1e-9);
     return scale * constants.F / Math.pow(Math.tan(Math.PI / 4 + clampedPhi / 2), constants.n);
   }
 
   if (mode === 'equalArea') {
-    return scale * Math.sqrt(Math.max(0.0001, constants.C - 2 * constants.n * Math.sin(phi))) / constants.n;
+    return scale * Math.sqrt(Math.max(0, constants.C - 2 * constants.n * Math.sin(phi))) / constants.n;
   }
 
   return scale * (constants.G - phi);
@@ -324,6 +342,12 @@ export const conicForward = (
   latitudeOfOrigin = 0
 ) => {
   const constants = getConicConstants(mode, standardParallel1, standardParallel2);
+  if (constants.n === 0) {
+    const raw = mode === 'conformal' ? mercatorRaw(standardParallel1)
+      : mode === 'equalArea' ? cylindricalEqualAreaRaw(standardParallel1) : equidistantCylindricalRaw(standardParallel1);
+    const point = raw(lambda, phi);
+    return { x: scale * point[0], y: scale * (point[1] - raw(0, latitudeOfOrigin * DEG2RAD)[1]), n: 0 };
+  }
   const theta = constants.n * lambda;
   const rho = getConicRho(phi, mode, constants, scale);
   const rho0 = getConicRho(latitudeOfOrigin * DEG2RAD, mode, constants, scale);
@@ -336,20 +360,24 @@ export const conicForward = (
   };
 };
 
-export const conicRaw = (mode, standardParallel1, standardParallel2, latitudeOfOrigin = 0) => (
-  lambda,
-  phi
-) => {
-  const point = conicForward(
-    lambda,
-    phi,
-    mode,
-    standardParallel1,
-    standardParallel2,
-    1,
-    latitudeOfOrigin
-  );
-  return [point.x, point.y];
+export const conicRaw = (mode, standardParallel1, standardParallel2, latitudeOfOrigin = 0) => {
+  const constants = getConicConstants(mode, standardParallel1, standardParallel2);
+  let base;
+  if (constants.n === 0) {
+    base = mode === 'conformal' ? mercatorRaw(standardParallel1)
+      : mode === 'equalArea' ? cylindricalEqualAreaRaw(standardParallel1) : equidistantCylindricalRaw(standardParallel1);
+  } else {
+    const factory = mode === 'conformal' ? geoConicConformalRaw
+      : mode === 'equalArea' ? geoConicEqualAreaRaw : geoConicEquidistantRaw;
+    base = factory(standardParallel1 * DEG2RAD, standardParallel2 * DEG2RAD);
+  }
+  const offset = base(0, latitudeOfOrigin * DEG2RAD)[1];
+  const raw = (lambda, phi) => {
+    const [x, y] = base(lambda, phi);
+    return [x, y - offset];
+  };
+  raw.invert = (x, y) => base.invert(x, y + offset);
+  return raw;
 };
 
 export const getSurfaceMetrics = (family, mode, params, radius = 5) => {
@@ -359,7 +387,7 @@ export const getSurfaceMetrics = (family, mode, params, radius = 5) => {
     const cylinderRadius = radius * Math.cos(normalized.standardParallel * DEG2RAD);
     return {
       contact: normalized.standardParallel === 0 ? '相切圆柱 Tangent Cylinder' : '相割圆柱 Secant Cylinder',
-      primary: `圆柱半径 ${cylinderRadius.toFixed(2)}R`,
+      primary: `圆柱半径 ${(cylinderRadius / radius).toFixed(3)} R`,
       radius: cylinderRadius,
       aspectLabel: normalized.aspect === 'transverse' ? '横轴 Transverse' : '正轴 Normal'
     };
@@ -369,17 +397,15 @@ export const getSurfaceMetrics = (family, mode, params, radius = 5) => {
     const planeDistance = getAzimuthalPlaneDistance(radius, normalized.standardCircleDistance);
     return {
       contact: normalized.standardCircleDistance === 0 ? '切平面 Tangent Plane' : '割平面 Secant Plane',
-      primary: `平面距球心 ${planeDistance.toFixed(2)}R`,
+      primary: `平面距球心 ${(planeDistance / radius).toFixed(3)} R`,
       distance: planeDistance
     };
   }
 
   const constants = getConicConstants(mode, normalized.standardParallel1, normalized.standardParallel2);
   return {
-    contact: Math.abs(normalized.standardParallel1 - normalized.standardParallel2) <= 0.6
-      ? '切圆锥 Tangent Cone'
-      : '割圆锥 Secant Cone',
-    primary: `圆锥常数 n=${constants.n.toFixed(3)}`,
+    contact: constants.n === 0 ? '圆柱极限形式' : '数学辅助圆锥',
+    primary: `圆锥常数 n=${constants.n !== 0 && Math.abs(constants.n) < 0.001 ? constants.n.toExponential(2) : constants.n.toFixed(3)}`,
     n: constants.n
   };
 };

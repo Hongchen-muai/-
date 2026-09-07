@@ -2,8 +2,8 @@
   <div class="map2d-view">
     <div class="map-header">
       <div>
-        <span class="panel-kicker">精确二维投影</span>
-        <h3>{{ details.title }} <span class="title-note">精确计算</span></h3>
+        <span class="panel-kicker">二维投影 · 球面模型</span>
+        <h3>{{ details.title }}</h3>
         <p>{{ details.titleEn }} · {{ details.property }}</p>
       </div>
       <div class="map-actions">
@@ -12,6 +12,7 @@
             v-for="mode in modeOptions"
             :key="mode.key"
             :class="{ active: props.projectionMode === mode.key }"
+            :aria-pressed="props.projectionMode === mode.key"
             @click="emit('update:projectionMode', mode.key)"
           >
             {{ mode.label }}
@@ -20,14 +21,15 @@
       </div>
     </div>
 
-    <div class="map-canvas" ref="wrapperRef" @wheel.prevent="handleWheelScale">
+    <div class="map-canvas" data-tour="map" ref="wrapperRef" @wheel.prevent="handleWheelScale">
       <div class="scale-overlay">
         <div class="scale-head">
-          <span>地图显示比例尺</span>
-          <input type="number" :value="params.viewScale" @change="handleScaleInput" />
+          <span>显示缩放 / %</span>
+          <input aria-label="二维显示缩放" type="number" min="60" max="180" :value="params.viewScale" @input="handleScaleInput" @change="handleScaleInput" @blur="handleScaleInput" @keydown.enter="$event.target.blur()" />
         </div>
         <input
           type="range"
+          aria-label="二维显示缩放滑块"
           min="60"
           max="180"
           :value="params.viewScale"
@@ -36,6 +38,7 @@
       </div>
       <svg ref="svgRef" role="img" :aria-label="`${details.title} 二维地图`"></svg>
       <div v-if="statusText" class="map-status">{{ statusText }}</div>
+      <div class="domain-caption">{{ model.domainLabel }}</div>
     </div>
 
     <div class="projection-notes">
@@ -58,364 +61,89 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
 import * as d3 from 'd3';
-import * as topojson from 'topojson-client';
-import {
-  DEG2RAD,
-  PROJECTION_MODES,
-  getProjectionDetails,
-  normalizeProjectionParams,
-  mercatorRaw,
-  cylindricalEqualAreaRaw,
-  equidistantCylindricalRaw,
-  conicRaw,
-  getStandardFeatures
-} from '../core/mapMath.js';
+import { PROJECTION_MODES, getProjectionDetails, normalizeProjectionParams } from '../core/mapMath.js';
+import { createProjectionModel, fitProjection, SPHERE, GRATICULE } from '../core/projectionModel.js';
+import { getIndicatrices, INDICATRIX_RADIUS } from '../core/indicatrix.js';
+import { loadWorldData } from '../core/worldData.js';
 
 const props = defineProps({
-  projectionFamily: {
-    type: String,
-    default: 'cylinder'
-  },
-  projectionMode: {
-    type: String,
-    default: 'conformal'
-  },
-  projectionParams: {
-    type: Object,
-    default: () => ({})
-  }
+  projectionFamily: { type: String, default: 'cylinder' },
+  projectionMode: { type: String, default: 'conformal' },
+  projectionParams: { type: Object, default: () => ({}) }
 });
-
 const emit = defineEmits(['update:projectionMode', 'update:viewScale']);
-
 const svgRef = ref(null);
 const wrapperRef = ref(null);
-const statusText = ref('');
-let geoData = null;
-let resizeObserver = null;
-
-const params = computed(() =>
-  normalizeProjectionParams(props.projectionFamily, props.projectionMode, props.projectionParams)
-);
-
-const details = computed(() => getProjectionDetails(props.projectionFamily, props.projectionMode));
+const statusText = ref('正在加载地图');
+let geoData, resizeObserver;
+let disposed = false;
+const params = computed(() => normalizeProjectionParams(props.projectionFamily, props.projectionMode, props.projectionParams));
+const model = computed(() => createProjectionModel(props.projectionFamily, props.projectionMode, params.value));
+const details = computed(() => getProjectionDetails(props.projectionFamily, props.projectionMode, params.value));
 const modeOptions = Object.values(PROJECTION_MODES);
 
-const loadData = async () => {
-  const response = await fetch(`${import.meta.env.BASE_URL}world-110m.json`);
-  if (!response.ok) throw new Error(`Failed to load world data: ${response.status}`);
-  const topology = await response.json();
-  const landObject = topology.objects.land || topology.objects.countries;
-  geoData = topojson.feature(topology, landObject);
-  renderMap();
-};
-
-const configureProjection = (projection) => {
-  const p = params.value;
-
-  if (props.projectionFamily === 'planar') {
-    projection
-      .rotate([-p.projectionCenterLon, -p.projectionCenterLat, 0])
-      .clipAngle(90);
-    return projection;
-  }
-
-  if (props.projectionFamily === 'conic') {
-    projection
-      .rotate([-p.centralMeridian, -p.latitudeOfOrigin, 0])
-      .center([0, 0]);
-    return projection;
-  }
-
-  projection
-    .rotate([-p.centralMeridian, -p.latitudeOfOrigin, p.aspect === 'transverse' ? 90 : 0])
-    .center([0, 0]);
-
-  return projection;
-};
-
-const createProjection = () => {
-  const p = params.value;
-
-  if (props.projectionFamily === 'cylinder') {
-    if (props.projectionMode === 'conformal') {
-      return configureProjection(d3.geoProjection(mercatorRaw(p.standardParallel)));
-    }
-    if (props.projectionMode === 'equalArea') {
-      return configureProjection(d3.geoProjection(cylindricalEqualAreaRaw(p.standardParallel)));
-    }
-    return configureProjection(d3.geoProjection(equidistantCylindricalRaw(p.standardParallel)));
-  }
-
-  if (props.projectionFamily === 'planar') {
-    if (props.projectionMode === 'conformal') return configureProjection(d3.geoStereographic());
-    if (props.projectionMode === 'equalArea') return configureProjection(d3.geoAzimuthalEqualArea());
-    return configureProjection(d3.geoOrthographic());
-  }
-
-  return configureProjection(d3.geoProjection(conicRaw(
-    props.projectionMode,
-    p.standardParallel1,
-    p.standardParallel2,
-    p.latitudeOfOrigin
-  )));
-};
-
-const fitProjection = (projection, width, height) => {
-  const fitObject = props.projectionFamily === 'planar' ? { type: 'Sphere' } : geoData;
-  projection.fitExtent([[24, 24], [width - 24, height - 24]], fitObject);
-  projection.scale(projection.scale() * (params.value.viewScale / 100));
-  projection.translate([width / 2, height / 2]);
-  return projection;
-};
-
-const standardLatitudeFeature = (lat) => ({
-  type: 'Feature',
-  geometry: {
-    type: 'LineString',
-    coordinates: d3.range(-180, 181, 2).map((lon) => [lon, lat])
-  }
-});
-
-const standardCircleFeature = (centerLon, centerLat, radiusDeg) => {
-  const lambda0 = centerLon * DEG2RAD;
-  const phi0 = centerLat * DEG2RAD;
-  const radius = Math.max(0.01, radiusDeg) * DEG2RAD;
-
-  return {
-    type: 'Feature',
-    geometry: {
-      type: 'LineString',
-      coordinates: d3.range(0, 361, 2).map((angleDeg) => {
-        const theta = angleDeg * DEG2RAD;
-        const sinPhi = Math.sin(phi0) * Math.cos(radius) +
-          Math.cos(phi0) * Math.sin(radius) * Math.cos(theta);
-        const phi = Math.asin(Math.max(-1, Math.min(1, sinPhi)));
-        const y = Math.sin(theta) * Math.sin(radius) * Math.cos(phi0);
-        const x = Math.cos(radius) - Math.sin(phi0) * Math.sin(phi);
-        const lambda = lambda0 + Math.atan2(y, x);
-        return [
-          ((((lambda * 180 / Math.PI) + 540) % 360) - 180),
-          phi * 180 / Math.PI
-        ];
-      })
-    }
-  };
-};
-
-const createStandardGeometry = () => {
-  const features = getStandardFeatures(props.projectionFamily, params.value);
-  if (props.projectionFamily === 'planar') {
-    const radius = features.values[0];
-    return standardCircleFeature(
-      params.value.projectionCenterLon,
-      params.value.projectionCenterLat,
-      radius
-    );
-  }
-
-  return {
-    type: 'FeatureCollection',
-    features: features.values.map((lat) => standardLatitudeFeature(lat))
-  };
-};
-
-const getIndicatrixCenters = () => {
-  const longitudes = d3.range(-150, 181, 30);
-  const latitudes = props.projectionFamily === 'planar'
-    ? d3.range(-60, 61, 20)
-    : d3.range(-60, 61, 15);
-  const centers = [];
-  latitudes.forEach((lat) => {
-    longitudes.forEach((lon) => centers.push({ lon, lat }));
-  });
-  return centers;
-};
-
-const isVisibleInPlanarHemisphere = (lon, lat) => {
-  if (props.projectionFamily !== 'planar') return true;
-  const lambda = lon * DEG2RAD;
-  const phi = lat * DEG2RAD;
-  const lambda0 = params.value.projectionCenterLon * DEG2RAD;
-  const phi0 = params.value.projectionCenterLat * DEG2RAD;
-  const cosDistance = Math.sin(phi0) * Math.sin(phi) +
-    Math.cos(phi0) * Math.cos(phi) * Math.cos(lambda - lambda0);
-  return cosDistance >= 0.0001;
-};
-
-const localDerivative = (projection, lon, lat, deltaDeg = 0.35) => {
-  const cosLat = Math.max(0.18, Math.cos(lat * DEG2RAD));
-  const lambdaStep = deltaDeg / cosLat;
-  const northA = projection([lon, Math.min(89.5, lat + deltaDeg)]);
-  const northB = projection([lon, Math.max(-89.5, lat - deltaDeg)]);
-  const eastA = projection([lon + lambdaStep, lat]);
-  const eastB = projection([lon - lambdaStep, lat]);
-  const center = projection([lon, lat]);
-
-  if (!center || !northA || !northB || !eastA || !eastB) return null;
-  if (![center, northA, northB, eastA, eastB].flat().every(Number.isFinite)) return null;
-
-  const dPhi = deltaDeg * DEG2RAD;
-  const dLambda = lambdaStep * DEG2RAD * cosLat;
-  return {
-    center,
-    east: [(eastA[0] - eastB[0]) / (2 * dLambda), (eastA[1] - eastB[1]) / (2 * dLambda)],
-    north: [(northA[0] - northB[0]) / (2 * dPhi), (northA[1] - northB[1]) / (2 * dPhi)]
-  };
-};
-
-const singularValues = ({ east, north }) => {
-  const a = east[0] * east[0] + east[1] * east[1];
-  const b = east[0] * north[0] + east[1] * north[1];
-  const c = north[0] * north[0] + north[1] * north[1];
-  const trace = a + c;
-  const determinant = Math.max(0, a * c - b * b);
-  const root = Math.sqrt(Math.max(0, trace * trace / 4 - determinant));
-  const lambda1 = Math.max(0.0001, trace / 2 + root);
-  const lambda2 = Math.max(0.0001, trace / 2 - root);
-  const angle = Math.abs(b) < 1e-9 && Math.abs(lambda1 - a) < 1e-9
-    ? 0
-    : Math.atan2(lambda1 - a, b || 1e-9);
-  return {
-    major: Math.sqrt(lambda1),
-    minor: Math.sqrt(lambda2),
-    angle: angle * 180 / Math.PI
-  };
-};
-
-const createIndicatrixData = (projection) => {
-  const raw = getIndicatrixCenters()
-    .filter(({ lon, lat }) => isVisibleInPlanarHemisphere(lon, lat))
-    .map(({ lon, lat }) => {
-      const derivative = localDerivative(projection, lon, lat);
-      if (!derivative) return null;
-      const values = singularValues(derivative);
-      return { ...derivative, ...values };
-    })
-    .filter(Boolean);
-
-  if (!raw.length) return [];
-  const medianScale = d3.median(raw, (d) => Math.sqrt(d.major * d.minor)) || 1;
-
-  return raw.map((d) => ({
-    cx: d.center[0],
-    cy: d.center[1],
-    rx: Math.max(2.5, Math.min(18, d.major / medianScale * 5)),
-    ry: Math.max(2.5, Math.min(18, d.minor / medianScale * 5)),
-    angle: d.angle,
-    ratio: d.major / d.minor
+const indicatrices = (projection) => {
+  const scale = projection.scale(), [tx, ty] = projection.translate();
+  return getIndicatrices(model.value).map(({ center, east, north, geographic }) => ({
+    geographic,
+    transform: `matrix(${east[0] * scale} ${-east[1] * scale} ${north[0] * scale} ${-north[1] * scale} ${center[0] * scale + tx} ${-center[1] * scale + ty})`
   }));
 };
 
 const handleScaleInput = (event) => {
-  emit('update:viewScale', Number(event.target.value));
+  const value = event.target.value.trim() === '' ? params.value.viewScale : Number(event.target.value);
+  if (!Number.isFinite(value)) return;
+  if (event.type === 'input' && (value < 60 || value > 180)) return;
+  const normalized = Math.max(60, Math.min(180, value));
+  emit('update:viewScale', normalized);
+  if (event.type !== 'input') event.target.value = normalized;
 };
-
-const handleWheelScale = (event) => {
-  const delta = event.deltaY > 0 ? -6 : 6;
-  emit('update:viewScale', params.value.viewScale + delta);
-};
+const handleWheelScale = (event) => emit('update:viewScale', params.value.viewScale + (event.deltaY > 0 ? -6 : 6));
 
 const renderMap = () => {
-  if (!svgRef.value || !wrapperRef.value || !geoData) return;
-
-  const width = Math.max(360, wrapperRef.value.clientWidth);
-  const height = Math.max(420, wrapperRef.value.clientHeight || 520);
+  if (!svgRef.value || !wrapperRef.value || !geoData || disposed) return;
+  const width = Math.max(1, wrapperRef.value.clientWidth);
+  const height = Math.max(1, wrapperRef.value.clientHeight);
   const svg = d3.select(svgRef.value);
   svg.selectAll('*').remove();
   svg.attr('viewBox', `0 0 ${width} ${height}`);
+  const projection = fitProjection(model.value, width, height, params.value.viewScale);
+  const path = d3.geoPath(projection).pointRadius(3);
+  const clipId = 'map-domain-clip';
+  svg.append('defs').append('clipPath').attr('id', clipId)
+    .append('path').datum(SPHERE).attr('d', path);
+  svg.append('path').datum(SPHERE).attr('class', 'sphere-outline').attr('d', path)
+    .attr('fill', '#edf2f0').attr('stroke', '#95aaa3').attr('stroke-width', 1);
+  svg.append('g').attr('class', 'land').selectAll('path').data(geoData.features).join('path')
+    .attr('d', path).attr('fill', '#ffffff').attr('stroke', '#3a4a44').attr('stroke-width', 0.8);
+  if (params.value.showGraticule) svg.append('path').datum(GRATICULE)
+    .attr('class', 'graticule').attr('d', path).attr('fill', 'none').attr('stroke', '#aabbb4').attr('stroke-width', 0.65);
+  if (params.value.showStandardLine) svg.append('path').datum(model.value.standardGeometry)
+    .attr('class', 'standard-line').attr('d', path)
+    .attr('fill', model.value.standardGeometry.type === 'Point' ? '#d92d20' : 'none')
+    .attr('stroke', '#d92d20').attr('stroke-width', 1.8).attr('stroke-linecap', 'round');
+  if (params.value.showIndicatrix) svg.append('g').attr('class', 'indicatrix-layer').attr('clip-path', `url(#${clipId})`)
+    .selectAll('circle').data(indicatrices(projection)).join('circle')
+    .attr('r', INDICATRIX_RADIUS).attr('transform', d => d.transform)
+    .attr('fill', '#b88636').attr('fill-opacity', 0.3).attr('stroke', '#886024')
+    .attr('stroke-width', 0.75).attr('vector-effect', 'non-scaling-stroke')
+    .append('title').text(d => `参考圆中心：${d.geographic[0]}°，${d.geographic[1]}°`);
+  if (props.projectionFamily === 'conic' && model.value.contains(model.value.origin)) {
+    const [x, y] = projection(model.value.origin);
+    svg.append('path').attr('d', `M${x - 4},${y}h8M${x},${y - 4}v8`)
+      .attr('class', 'projection-origin').attr('stroke', '#333').attr('stroke-width', 1.2)
+      .append('title').text('坐标原点 (0, 0)');
+  }
   statusText.value = '';
-
-  const projection = fitProjection(createProjection(), width, height);
-  const path = d3.geoPath(projection);
-
-  svg.append('rect')
-    .attr('width', width)
-    .attr('height', height)
-    .attr('fill', '#f7fafc');
-
-  svg.append('path')
-    .datum({ type: 'Sphere' })
-    .attr('class', 'sphere-outline')
-    .attr('d', path)
-    .attr('fill', props.projectionFamily === 'planar' ? '#eef5f9' : 'none')
-    .attr('stroke', '#9fb6c8')
-    .attr('stroke-width', 1);
-
-  if (params.value.showGraticule) {
-    svg.append('path')
-      .datum(d3.geoGraticule10())
-      .attr('class', 'graticule')
-      .attr('d', path)
-      .attr('fill', 'none')
-      .attr('stroke', '#c6d2dc')
-      .attr('stroke-width', 0.7);
-  }
-
-  svg.append('g')
-    .attr('class', 'land')
-    .selectAll('path')
-    .data(geoData.features)
-    .enter()
-    .append('path')
-    .attr('d', path)
-    .attr('fill', '#ffffff')
-    .attr('stroke', '#263846')
-    .attr('stroke-width', 0.8);
-
-  if (params.value.showStandardLine) {
-    svg.append('path')
-      .datum(createStandardGeometry())
-      .attr('class', 'standard-line')
-      .attr('d', path)
-      .attr('fill', 'none')
-      .attr('stroke', '#d92d20')
-      .attr('stroke-width', 2)
-      .attr('stroke-linecap', 'round');
-  }
-
-  if (params.value.showIndicatrix) {
-    const indicatrixData = createIndicatrixData(projection);
-    if (indicatrixData.length) {
-      svg.append('g')
-        .attr('class', 'indicatrix-layer')
-        .selectAll('ellipse')
-        .data(indicatrixData)
-        .enter()
-        .append('ellipse')
-        .attr('cx', (d) => d.cx)
-        .attr('cy', (d) => d.cy)
-        .attr('rx', (d) => d.rx)
-        .attr('ry', (d) => d.ry)
-        .attr('transform', (d) => `rotate(${d.angle}, ${d.cx}, ${d.cy})`)
-        .attr('fill', '#f97316')
-        .attr('fill-opacity', 0.38)
-        .attr('stroke', '#c2410c')
-        .attr('stroke-width', 0.8);
-    } else {
-      statusText.value = '当前参数下变形椭圆已隐藏';
-    }
-  }
 };
-
-watch(
-  () => [props.projectionFamily, props.projectionMode, props.projectionParams],
-  () => nextTick(renderMap),
-  { deep: true }
-);
-
+watch(() => [props.projectionFamily, props.projectionMode, props.projectionParams], () => nextTick(renderMap), { deep: true });
 onMounted(() => {
-  loadData().catch((error) => {
-    statusText.value = '世界地图数据加载失败';
-    console.error(error);
-  });
-  resizeObserver = new ResizeObserver(() => renderMap());
-  if (wrapperRef.value) resizeObserver.observe(wrapperRef.value);
+  loadWorldData().then(data => { if (!disposed) { geoData = data; renderMap(); } })
+    .catch(error => { if (!disposed) statusText.value = error.message; });
+  resizeObserver = new ResizeObserver(renderMap);
+  resizeObserver.observe(wrapperRef.value);
 });
-
-onBeforeUnmount(() => {
-  resizeObserver?.disconnect();
-});
+onBeforeUnmount(() => { disposed = true; resizeObserver?.disconnect(); });
 </script>
 
 <style scoped>
@@ -425,32 +153,33 @@ onBeforeUnmount(() => {
   width: 100%;
   min-height: 100%;
   background: #ffffff;
-  color: #1f3346;
+  color: #333333;
 }
 
 .map-header {
   display: flex;
+  flex-direction: column;
   justify-content: space-between;
-  gap: 16px;
-  min-height: 126px;
-  padding: 17px 18px;
-  border-bottom: 1px solid #dce5ec;
+  gap: 12px;
+  min-height: 160px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #e0e0e0;
   background: #ffffff;
 }
 
 .panel-kicker {
   display: block;
-  color: #607487;
+  color: #666666;
   font-family: "Segoe UI", Arial, sans-serif;
   font-size: 0.72rem;
   font-weight: 800;
-  letter-spacing: 0.1em;
+  letter-spacing: 0;
 }
 
 .map-header h3 {
   margin: 5px 0 3px;
-  color: #12293d;
-  font-size: 1.24rem;
+  color: #333333;
+  font-size: 1.1rem;
   line-height: 1.32;
 }
 
@@ -459,9 +188,9 @@ onBeforeUnmount(() => {
   align-items: center;
   margin-left: 6px;
   padding: 2px 7px;
-  border: 1px solid #d8e2ea;
-  background: #f4f8fb;
-  color: #536b7c;
+  border: 1px solid #e0e0e0;
+  background: #f5f6f5;
+  color: #666666;
   font-size: 0.78rem;
   font-weight: 700;
   vertical-align: 0.12em;
@@ -469,14 +198,14 @@ onBeforeUnmount(() => {
 
 .map-header p {
   margin: 0;
-  color: #66798a;
-  font-size: 0.9rem;
+  color: #777777;
+  font-size: 12px;
 }
 
 .map-actions {
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: flex-start;
   gap: 8px;
   flex-shrink: 0;
 }
@@ -489,35 +218,36 @@ onBeforeUnmount(() => {
 }
 
 .mode-tabs button {
-  border: 1px solid #c6d5e0;
+  border: 1px solid #dedede;
   background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-  color: #24475f;
-  padding: 9px 13px;
-  font-size: 0.86rem;
+  color: #444444;
+  padding: 6px 12px;
+  font-size: 13px;
   font-weight: 800;
   transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
 }
 
 .mode-tabs button:hover {
   transform: translateY(-1px);
-  border-color: #8fb0c6;
-  box-shadow: 0 1px 3px rgba(31, 51, 70, 0.08);
+  border-color: #9aaa9f;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .mode-tabs button.active {
-  background: linear-gradient(135deg, #245a7d 0%, #173047 100%);
-  border-color: #173047;
+  background: linear-gradient(135deg, #3c5b4c 0%, #333333 100%);
+  border-color: #333333;
   color: #ffffff;
 }
 
 .map-canvas {
   position: relative;
-  flex: 1;
-  min-height: 520px;
+  flex: none;
+  height: 520px;
+  min-height: 0;
   background:
     linear-gradient(90deg, rgba(199, 215, 227, 0.32) 1px, transparent 1px),
     linear-gradient(0deg, rgba(199, 215, 227, 0.32) 1px, transparent 1px),
-    #f7fafc;
+    #f7f9f8;
   background-size: 32px 32px;
   overflow: hidden;
 }
@@ -529,7 +259,7 @@ onBeforeUnmount(() => {
   z-index: 4;
   width: min(210px, calc(100% - 24px));
   padding: 0;
-  color: #173047;
+  color: #333333;
   text-shadow: 0 1px 2px rgba(255, 255, 255, 0.95);
 }
 
@@ -542,7 +272,7 @@ onBeforeUnmount(() => {
 }
 
 .scale-head span {
-  color: #173047;
+  color: #333333;
   font-size: 0.78rem;
   font-weight: 800;
 }
@@ -551,7 +281,7 @@ onBeforeUnmount(() => {
   width: 52px;
   border: 1px solid rgba(117, 143, 160, 0.48);
   background: rgba(247, 250, 252, 0.5);
-  color: #173047;
+  color: #333333;
   padding: 2px 4px;
   font-size: 0.78rem;
   text-align: center;
@@ -559,7 +289,7 @@ onBeforeUnmount(() => {
 
 .scale-overlay input[type="range"] {
   width: 100%;
-  accent-color: #245a7d;
+  accent-color: #3c5b4c;
   opacity: 0.82;
 }
 
@@ -567,7 +297,18 @@ onBeforeUnmount(() => {
   display: block;
   width: 100%;
   height: 100%;
-  min-height: 520px;
+  min-height: 0;
+}
+
+.domain-caption {
+  position: absolute;
+  bottom: 7px;
+  left: 12px;
+  right: 12px;
+  color: #666;
+  font-size: 12px;
+  background: rgba(247, 249, 248, 0.9);
+  pointer-events: none;
 }
 
 .map-status {
@@ -575,9 +316,9 @@ onBeforeUnmount(() => {
   left: 14px;
   bottom: 14px;
   padding: 8px 10px;
-  border: 1px solid #d5e2eb;
+  border: 1px solid #e0e0e0;
   background: rgba(255, 255, 255, 0.92);
-  color: #405466;
+  color: #666666;
   font-size: 0.88rem;
 }
 
@@ -585,13 +326,13 @@ onBeforeUnmount(() => {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0;
-  border-top: 1px solid #dce5ec;
-  background: #fbfdfe;
+  border-top: 1px solid #e0e0e0;
+  background: #fafbfa;
 }
 
 .projection-notes section {
   padding: 13px 15px;
-  border-right: 1px solid #e1e9ef;
+  border-right: 1px solid #e0e0e0;
 }
 
 .projection-notes section:last-child {
@@ -600,15 +341,22 @@ onBeforeUnmount(() => {
 
 .projection-notes h4 {
   margin: 0 0 5px;
-  color: #173047;
+  color: #333333;
   font-size: 0.94rem;
 }
 
 .projection-notes p {
   margin: 0;
-  color: #607487;
+  color: #666666;
   font-size: 0.84rem;
   line-height: 1.55;
+}
+
+@media (max-width: 1399px) and (min-width: 981px) {
+  .projection-notes { grid-template-columns: 1fr; }
+  .projection-notes section { border-right: none; border-bottom: 1px solid #e0e0e0; padding: 9px 13px; }
+  .projection-notes h4 { font-size: 13px; }
+  .projection-notes p { font-size: 12px; }
 }
 
 @media (max-width: 900px) {
@@ -627,7 +375,7 @@ onBeforeUnmount(() => {
 
   .projection-notes section {
     border-right: none;
-    border-bottom: 1px solid #e1e9ef;
+    border-bottom: 1px solid #e0e0e0;
   }
 }
 </style>

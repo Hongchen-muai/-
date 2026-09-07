@@ -1,0 +1,86 @@
+{
+  "glyphs": [
+    {
+      "family": "cylinder",
+      "mode": "conformal",
+      "svgGlyphs": 84,
+      "canvasAmberPixels": 6072
+    },
+    {
+      "family": "cylinder",
+      "mode": "equalArea",
+      "svgGlyphs": 84,
+      "canvasAmberPixels": 7736
+    },
+    {
+      "family": "cylinder",
+      "mode": "compromise",
+      "svgGlyphs": 84,
+      "canvasAmberPixels": 7688
+    },
+    {
+      "family": "planar",
+      "mode": "conformal",
+      "svgGlyphs": 42,
+      "canvasAmberPixels": 5264
+    },
+    {
+      "family": "planar",
+      "mode": "equalArea",
+      "svgGlyphs": 42,
+      "canvasAmberPixels": 5168
+    },
+    {
+      "family": "planar",
+      "mode": "compromise",
+      "svgGlyphs": 40,
+      "canvasAmberPixels": 5458
+    },
+    {
+      "family": "conic",
+      "mode": "conformal",
+      "svgGlyphs": 48,
+      "canvasAmberPixels": 3336
+    },
+    {
+      "family": "conic",
+      "mode": "equalArea",
+      "svgGlyphs": 48,
+      "canvasAmberPixels": 3648
+    },
+    {
+      "family": "conic",
+      "mode": "compromise",
+      "svgGlyphs": 48,
+      "canvasAmberPixels": 3448
+    }
+  ],
+  "geometryPhase": {
+    "heading": "几何参考：O、P、G（不是实际投影）",
+    "labels": [
+      "示例 P：φ = 60°",
+      "P=G",
+      "O"
+    ]
+  },
+  "mathematicsPhase": {
+    "heading": "G → M：按等距条件确定实际投影",
+    "labels": [
+      "示例 P：φ = 60°",
+      "P=G",
+      "M",
+      "O"
+    ]
+  },
+  "toggle": {
+    "goldOn": 3144,
+    "goldOff": 608,
+    "svgOn": 77,
+    "svgOff": 0,
+    "leftChecked": false
+  },
+  "tests": "passed",
+  "build": "passed",
+  "model": "sphere",
+  "indicatrices": "shared first-order Jacobians and sample set"
+}

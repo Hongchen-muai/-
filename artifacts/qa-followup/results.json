@@ -1,0 +1,122 @@
+{
+  "projectionChecks": [
+    {
+      "family": "cylinder",
+      "mode": "conformal",
+      "darkPixels": 6901
+    },
+    {
+      "family": "cylinder",
+      "mode": "equalArea",
+      "darkPixels": 15977
+    },
+    {
+      "family": "cylinder",
+      "mode": "compromise",
+      "darkPixels": 11097
+    },
+    {
+      "family": "planar",
+      "mode": "conformal",
+      "darkPixels": 5428
+    },
+    {
+      "family": "planar",
+      "mode": "equalArea",
+      "darkPixels": 5383
+    },
+    {
+      "family": "planar",
+      "mode": "compromise",
+      "darkPixels": 5846
+    },
+    {
+      "family": "conic",
+      "mode": "conformal",
+      "darkPixels": 5900
+    },
+    {
+      "family": "conic",
+      "mode": "equalArea",
+      "darkPixels": 7804
+    },
+    {
+      "family": "conic",
+      "mode": "compromise",
+      "darkPixels": 7232
+    }
+  ],
+  "cameraContourChecks": [
+    {
+      "family": "cylinder",
+      "total": 1290,
+      "missing": 0,
+      "ratio": 0
+    },
+    {
+      "family": "planar",
+      "total": 2029,
+      "missing": 1,
+      "ratio": 0.0004928536224741252
+    },
+    {
+      "family": "conic",
+      "total": 1539,
+      "missing": 0,
+      "ratio": 0
+    }
+  ],
+  "parameterEffects": [
+    {
+      "family": "cylinder",
+      "mode": "conformal",
+      "widthRatio": 1,
+      "heightRatio": 1,
+      "aspectRatioChange": 1
+    },
+    {
+      "family": "cylinder",
+      "mode": "equalArea",
+      "widthRatio": 0.7913944157025287,
+      "heightRatio": 3.1655694053272083,
+      "aspectRatioChange": 0.25000065213251144
+    },
+    {
+      "family": "cylinder",
+      "mode": "compromise",
+      "widthRatio": 1,
+      "heightRatio": 2,
+      "aspectRatioChange": 0.5
+    },
+    {
+      "family": "planar",
+      "mode": "conformal",
+      "widthRatio": 1,
+      "heightRatio": 1,
+      "aspectRatioChange": 1
+    },
+    {
+      "family": "planar",
+      "mode": "equalArea",
+      "widthRatio": 1,
+      "heightRatio": 1,
+      "aspectRatioChange": 1
+    },
+    {
+      "family": "planar",
+      "mode": "compromise",
+      "widthRatio": 1,
+      "heightRatio": 1,
+      "aspectRatioChange": 1
+    }
+  ],
+  "reportedCase": {
+    "centralMeridian": -22,
+    "latitudeOfOrigin": 18,
+    "standardParallel1": 17,
+    "standardParallel2": 75
+  },
+  "mathRegression": "passed",
+  "coastlineChordChecks": 45171,
+  "build": "passed"
+}
