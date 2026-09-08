@@ -13,12 +13,12 @@
             <template v-if="step.kind === 'overview'">
               <div class="intro-pair" aria-hidden="true"><Globe2 :size="42" :stroke-width="1.2" /><ArrowRight :size="24" /><Map :size="42" :stroke-width="1.2" /></div>
               <p>地球表面是曲面，地图是平面。把同一地点从球面换算到平面，距离、角度或面积通常会发生变化。</p>
-              <p>透明的圆柱、平面或圆锥是<strong>辅助投影面</strong>。它帮助表达坐标关系，不代表每种投影都能由一束光直接得到。</p>
+              <p>透明的圆柱、平面或圆锥帮助表达坐标关系，不代表每种投影都能由光线直接得到。<strong>平等地球是数学定义的伪圆柱投影</strong>，不靠物理圆柱展开。</p>
               <p class="intro-note">三维与二维表达同一组地理位置；三维视角造成的压缩，不等于地图本身的变形。</p>
             </template>
             <template v-else-if="step.kind === 'lines'">
               <div class="intro-line-label"><i class="intro-blue"></i><strong>蓝线：球面上的位置</strong></div>
-              <p>圆柱、圆锥中表示球面标准线；方位投影中表示辅助平面与球面的交圈或中心。</p>
+              <p>圆柱、圆锥和平等地球中表示球面标准线；方位投影中表示辅助平面与球面的交圈或中心。</p>
               <div class="intro-line-label"><i class="intro-red"></i><strong>红线：对应的投影位置</strong></div>
               <p>同一条球面线按投影公式映射后，得到辅助面与二维地图上的红线。蓝红线对应同一组地点，<strong>不一定在三维空间重合</strong>。</p>
               <p class="intro-note">标准线表示沿该线长度比例为 1，不表示所有方向都无变形。方位投影的交圈也不一定是真比例线。</p>

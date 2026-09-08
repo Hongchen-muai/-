@@ -1,4 +1,4 @@
-import { geoConicConformalRaw, geoConicEqualAreaRaw, geoConicEquidistantRaw } from 'd3';
+import { geoConicConformalRaw, geoConicEqualAreaRaw, geoConicEquidistantRaw, geoEqualEarthRaw } from 'd3';
 
 export const DEG2RAD = Math.PI / 180;
 export const RAD2DEG = 180 / Math.PI;
@@ -21,6 +21,12 @@ export const PROJECTION_FAMILIES = {
     label: '圆锥投影',
     labelEn: 'Conic',
     description: '以圆锥作为辅助投影面，标准纬线决定圆锥常数与径向函数。'
+  },
+  equalEarth: {
+    key: 'equalEarth',
+    label: '平等地球投影',
+    labelEn: 'Equal Earth',
+    description: '等面积伪圆柱投影：以多项式安排纬线，再由面积守恒决定经线间距。'
   }
 };
 
@@ -31,6 +37,17 @@ export const PROJECTION_MODES = {
 };
 
 export const PROJECTION_CONFIG = {
+  equalEarth: {
+    equalArea: {
+      title: '平等地球投影',
+      titleEn: 'Equal Earth',
+      property: '等面积伪圆柱投影',
+      d3Name: 'geoEqualEarth',
+      history: 'Bojan Šavrič、Tom Patterson 与 Bernhard Jenny 共同提出。论文于 2018 年在线发表，刊于 2019 年卷期；外形受罗宾森投影启发。',
+      usage: '适合全球专题图、教育地图和洲际面积比较。2026 年联合国相关倡议鼓励在面积比较重要时使用等面积投影，并非禁止墨卡托。',
+      distortion: '保持面积比例，不保持角度或任意距离。纬线为平行直线，经线为曲线，极点表示为有限长度的极线。'
+    }
+  },
   cylinder: {
     conformal: {
       title: '墨卡托投影',
@@ -148,7 +165,7 @@ const finiteNumber = (value, fallback) => {
 };
 
 export const getProjectionDetails = (family, mode, params = {}) => {
-  const details = { ...(PROJECTION_CONFIG[family]?.[mode] || PROJECTION_CONFIG.cylinder.conformal) };
+  const details = { ...(PROJECTION_CONFIG[family]?.[family === 'equalEarth' ? 'equalArea' : mode] || PROJECTION_CONFIG.cylinder.conformal) };
   if (family === 'cylinder') {
     const p = normalizeProjectionParams(family, mode, params);
     if (mode === 'equalArea' && p.standardParallel !== 0) {
@@ -251,8 +268,26 @@ export const equidistantCylindricalRaw = (standardParallel = 0) => {
   return raw;
 };
 
+// Solve parallel scale x(lambda=1, phi) / cos(phi) = 1 for the fixed
+// Equal Earth polynomial. This is a scale condition, not a secant surface.
+export const EQUAL_EARTH_STANDARD_PARALLEL = (() => {
+  let low = 0, high = Math.PI / 2;
+  for (let i = 0; i < 60; i++) {
+    const phi = (low + high) / 2;
+    if (geoEqualEarthRaw(1, phi)[0] < Math.cos(phi)) low = phi;
+    else high = phi;
+  }
+  return (low + high) / 2 * RAD2DEG;
+})();
+
 export const getStandardFeatures = (family, params, mode = 'conformal') => {
   const normalized = normalizeProjectionParams(family, 'conformal', params);
+
+  if (family === 'equalEarth') return {
+    type: 'latitudes',
+    values: [EQUAL_EARTH_STANDARD_PARALLEL, -EQUAL_EARTH_STANDARD_PARALLEL],
+    label: `固定真比例纬线：约 ±${EQUAL_EARTH_STANDARD_PARALLEL.toFixed(2)}°，仅指沿纬线方向比例为 1`
+  };
 
   if (family === 'cylinder') {
     const lat = Math.abs(normalized.standardParallel);
@@ -382,6 +417,12 @@ export const conicRaw = (mode, standardParallel1, standardParallel2, latitudeOfO
 
 export const getSurfaceMetrics = (family, mode, params, radius = 5) => {
   const normalized = normalizeProjectionParams(family, mode, params);
+
+  if (family === 'equalEarth') return {
+    contact: '等面积伪圆柱投影',
+    primary: '数学映射 · 无统一光源',
+    aspectLabel: '全球 · 含南北极线'
+  };
 
   if (family === 'cylinder') {
     const cylinderRadius = radius * Math.cos(normalized.standardParallel * DEG2RAD);

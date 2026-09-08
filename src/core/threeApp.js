@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import gsap from 'gsap';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { createProjectionModel, projectedLines, surfacePoint, sourcePoint, lonLatToVector, projectionLinks, SPHERE, GRATICULE } from './projectionModel.js';
+import { createProjectionModel, projectedLines, surfacePoint, sourcePoint, lonLatToVector, projectionLinks, SPHERE, GRATICULE, EQUAL_EARTH_PLANE_DEPTH } from './projectionModel.js';
 import { DEG2RAD, conicForward } from './mapMath.js';
 import { loadWorldData } from './worldData.js';
 import { getIndicatrices } from './indicatrix.js';
@@ -61,12 +61,12 @@ const makeMorphMaterial = (color, opacity, { surface = false, offset = 1 } = {})
   const material = new THREE.ShaderMaterial({
     uniforms: {
       uMapping: { value: surface ? 1 : progress.mapping }, uUnfold: { value: progress.unfold },
-      uFamily: { value: model.family === 'planar' ? 1 : conic ? 2 : 0 },
+      uFamily: { value: model.family === 'planar' || model.family === 'equalEarth' ? 1 : conic ? 2 : 0 },
       uRadius: { value: R_EARTH * Math.cos((model.family === 'conic' ? p.standardParallel1 : p.standardParallel) * DEG2RAD) },
       uN: { value: model.constants?.n || 0 }, uRho0: { value: rho0 },
       uAnchor: { value: model.surface.anchor * R_EARTH },
       uOriginOffset: { value: model.surface.originOffset * R_EARTH },
-      uPlane: { value: R_EARTH * Math.cos(p.standardCircleDistance * DEG2RAD) },
+      uPlane: { value: R_EARTH * (model.family === 'equalEarth' ? EQUAL_EARTH_PLANE_DEPTH : Math.cos(p.standardCircleDistance * DEG2RAD)) },
       uTransverse: { value: model.transverse ? 1 : 0 }, uOffset: { value: offset },
       uColor: { value: new THREE.Color(color) }, uOpacity: { value: opacity }
     },
@@ -305,7 +305,7 @@ const addRays = () => {
       const distance = Math.acos(Math.cos(link.local[0] * DEG2RAD) * Math.cos(link.local[1] * DEG2RAD)) / DEG2RAD;
       world.userData.probeCaption = model.family === 'planar'
         ? `示例 P：c = ${distance.toFixed(1)}°`
-        : `示例 P：${model.transverse ? '轴向 ' : ''}φ = ${link.local[1]}°`;
+        : `示例 P：${model.transverse ? '轴向 ' : ''}φ = ${model.family === 'equalEarth' ? Number(link.local[1].toFixed(2)) : link.local[1]}°`;
       const tracer = point(origin, grey);
       world.userData.pulses.push({ tracer, origin, end, geometric, target });
     }
@@ -438,12 +438,15 @@ const syncAnimation = () => {
 
 const frameScene = (flat = false, animate = false) => {
   if (!camera || !model) return;
-  const target = flat ? new THREE.Vector3(model.center[0] * R_EARTH, model.center[1] * R_EARTH, 0) : new THREE.Vector3();
-  const direction = flat ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(0.42, 0.22, 1).normalize();
+  const separated = model.family === 'equalEarth' && !flat;
+  const target = flat ? new THREE.Vector3(model.center[0] * R_EARTH, model.center[1] * R_EARTH, 0)
+    : new THREE.Vector3(0, 0, separated ? EQUAL_EARTH_PLANE_DEPTH * R_EARTH * 0.7 : 0);
+  const direction = flat ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(separated ? 0.85 : 0.42, separated ? 0.2 : 0.22, 1).normalize();
   const position = target.clone().addScaledVector(direction, 60);
   const right = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), direction).normalize();
   const up = new THREE.Vector3().crossVectors(direction, right).normalize();
   let halfW = R_EARTH * (flat ? 0 : 1.1), halfH = halfW;
+  if (separated) { halfW += Math.abs(target.dot(right)); halfH += Math.abs(target.dot(up)); }
   for (const xy of projectedLines(model, SPHERE).flat()) {
     const p = new THREE.Vector3(...surfacePoint(model, xy, flat ? 1 : 0)).sub(target);
     halfW = Math.max(halfW, Math.abs(p.dot(right)));
@@ -486,7 +489,7 @@ export function replayProjectionDemo() {
   if (!world) return;
   goToProjectionStep(0, false);
   callbacks.onDemoState?.({ step: 0, playing: true });
-  const mappingDuration = model.family === 'cylinder' ? 4.4 : 2;
+  const mappingDuration = model.family === 'cylinder' ? 4.4 : model.family === 'equalEarth' ? 3.4 : 2;
   const unfoldAt = mappingDuration + 2;
   timeline = gsap.timeline({ onUpdate: syncAnimation, onComplete: () => callbacks.onDemoState?.({ step: 2, playing: false }) });
   timeline.call(() => { step = 1; callbacks.onDemoState?.({ step: 1, playing: true }); }, [], 0.8)

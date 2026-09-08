@@ -1,0 +1,314 @@
+[
+  {
+    "center": 0,
+    "places": [
+      {
+        "name": "Beijing",
+        "expected": true,
+        "actual": true
+      },
+      {
+        "name": "Madagascar",
+        "expected": true,
+        "actual": true
+      },
+      {
+        "name": "Sahara",
+        "expected": true,
+        "actual": true
+      },
+      {
+        "name": "Amazon",
+        "expected": true,
+        "actual": true
+      },
+      {
+        "name": "Greenland",
+        "expected": true,
+        "actual": true
+      },
+      {
+        "name": "Canberra",
+        "expected": true,
+        "actual": true
+      },
+      {
+        "name": "Pacific",
+        "expected": false,
+        "actual": false
+      },
+      {
+        "name": "Indian Ocean",
+        "expected": false,
+        "actual": false
+      }
+    ],
+    "redYError": 0.00013729029453202202
+  },
+  {
+    "center": 110,
+    "places": [
+      {
+        "name": "Beijing",
+        "expected": true,
+        "actual": true
+      },
+      {
+        "name": "Madagascar",
+        "expected": true,
+        "actual": true
+      },
+      {
+        "name": "Sahara",
+        "expected": true,
+        "actual": true
+      },
+      {
+        "name": "Amazon",
+        "expected": true,
+        "actual": true
+      },
+      {
+        "name": "Greenland",
+        "expected": true,
+        "actual": true
+      },
+      {
+        "name": "Canberra",
+        "expected": true,
+        "actual": true
+      },
+      {
+        "name": "Pacific",
+        "expected": false,
+        "actual": false
+      },
+      {
+        "name": "Indian Ocean",
+        "expected": false,
+        "actual": false
+      }
+    ],
+    "redYError": 0.00013729029453202202
+  },
+  {
+    "toggle": "数学投影平面 Coordinate Plane",
+    "changedPixels": 58308
+  },
+  {
+    "toggle": "坐标映射连线 Mathematical Mapping",
+    "changedPixels": 9678
+  },
+  {
+    "toggle": "投影地图 Projected Map",
+    "changedPixels": 29481
+  },
+  {
+    "toggle": "显示经纬网 Graticule",
+    "changedPixels": 34579
+  },
+  {
+    "toggle": "标准线（真比例） Reference Geometry",
+    "changedPixels": 4309
+  },
+  {
+    "center": -180,
+    "places": [
+      {
+        "name": "Beijing",
+        "expected": true,
+        "actual": true
+      },
+      {
+        "name": "Madagascar",
+        "expected": true,
+        "actual": true
+      },
+      {
+        "name": "Sahara",
+        "expected": true,
+        "actual": true
+      },
+      {
+        "name": "Amazon",
+        "expected": true,
+        "actual": true
+      },
+      {
+        "name": "Greenland",
+        "expected": true,
+        "actual": true
+      },
+      {
+        "name": "Canberra",
+        "expected": true,
+        "actual": true
+      },
+      {
+        "name": "Pacific",
+        "expected": false,
+        "actual": false
+      },
+      {
+        "name": "Indian Ocean",
+        "expected": false,
+        "actual": false
+      }
+    ],
+    "redYError": 0.00013729029453202202
+  },
+  {
+    "center": 180,
+    "places": [
+      {
+        "name": "Beijing",
+        "expected": true,
+        "actual": true
+      },
+      {
+        "name": "Madagascar",
+        "expected": true,
+        "actual": true
+      },
+      {
+        "name": "Sahara",
+        "expected": true,
+        "actual": true
+      },
+      {
+        "name": "Amazon",
+        "expected": true,
+        "actual": true
+      },
+      {
+        "name": "Greenland",
+        "expected": true,
+        "actual": true
+      },
+      {
+        "name": "Canberra",
+        "expected": true,
+        "actual": true
+      },
+      {
+        "name": "Pacific",
+        "expected": false,
+        "actual": false
+      },
+      {
+        "name": "Indian Ocean",
+        "expected": false,
+        "actual": false
+      }
+    ],
+    "redYError": 0.00013729029453202202
+  },
+  {
+    "family": "cylinder",
+    "mode": "conformal",
+    "errors": [],
+    "land": 82494,
+    "pathBad": false,
+    "stage": {
+      "playing": "false",
+      "projection": "cylinder/conformal",
+      "step": "2"
+    }
+  },
+  {
+    "family": "cylinder",
+    "mode": "equalArea",
+    "errors": [],
+    "land": 79452,
+    "pathBad": false,
+    "stage": {
+      "playing": "false",
+      "projection": "cylinder/equalArea",
+      "step": "2"
+    }
+  },
+  {
+    "family": "cylinder",
+    "mode": "compromise",
+    "errors": [],
+    "land": 79447,
+    "pathBad": false,
+    "stage": {
+      "playing": "false",
+      "projection": "cylinder/compromise",
+      "step": "2"
+    }
+  },
+  {
+    "family": "planar",
+    "mode": "conformal",
+    "errors": [],
+    "land": 39416,
+    "pathBad": false,
+    "stage": {
+      "playing": "false",
+      "projection": "planar/conformal",
+      "step": "2"
+    }
+  },
+  {
+    "family": "planar",
+    "mode": "equalArea",
+    "errors": [],
+    "land": 39405,
+    "pathBad": false,
+    "stage": {
+      "playing": "false",
+      "projection": "planar/equalArea",
+      "step": "2"
+    }
+  },
+  {
+    "family": "planar",
+    "mode": "compromise",
+    "errors": [],
+    "land": 39060,
+    "pathBad": false,
+    "stage": {
+      "playing": "false",
+      "projection": "planar/compromise",
+      "step": "2"
+    }
+  },
+  {
+    "family": "conic",
+    "mode": "conformal",
+    "errors": [],
+    "land": 63513,
+    "pathBad": false,
+    "stage": {
+      "playing": "false",
+      "projection": "conic/conformal",
+      "step": "2"
+    }
+  },
+  {
+    "family": "conic",
+    "mode": "equalArea",
+    "errors": [],
+    "land": 63481,
+    "pathBad": false,
+    "stage": {
+      "playing": "false",
+      "projection": "conic/equalArea",
+      "step": "2"
+    }
+  },
+  {
+    "family": "conic",
+    "mode": "compromise",
+    "errors": [],
+    "land": 63383,
+    "pathBad": false,
+    "stage": {
+      "playing": "false",
+      "projection": "conic/compromise",
+      "step": "2"
+    }
+  }
+]

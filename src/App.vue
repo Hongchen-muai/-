@@ -27,7 +27,7 @@
           <div class="panel-head">
             <div>
               <span class="eyebrow">三维投影 · 球面模型</span>
-              <h2>辅助投影面与展开</h2>
+              <h2>{{ isEqualEarth ? '球面与等面积映射' : '辅助投影面与展开' }}</h2>
               <p>{{ details.title }}</p>
               <p v-if="projectionFamily === 'cylinder' && demoState.step === 1" class="phase-caption">{{ constructionPhase === 'geometry' ? 'O、P、G：几何参考，不是实际投影' : 'G → M：数学修正，不是弯曲光线' }}</p>
             </div>
@@ -61,6 +61,7 @@
             <span v-if="projectionParams.showStandardLine && demoState.step < 2"><i class="key-source"></i>球面{{ projectionFamily === 'planar' ? '交圈 / 中心' : '标准线' }}</span>
             <span v-if="projectionParams.showStandardLine"><i class="key-map"></i>{{ projectionFamily === 'planar' ? '对应投影' : '投影标准线' }}</span>
             <span v-if="projectionParams.showRays && demoState.step === 1 && projectionFamily === 'cylinder'"><i class="key-correction"></i>G → M 数学修正</span>
+            <span v-if="projectionParams.showRays && demoState.step === 1 && isEqualEarth"><i class="key-correction"></i>P → M 坐标映射</span>
             <span v-if="projectionParams.showIndicatrix"><i class="key-indicatrix"></i>等大小参考圆 / 一阶变形椭圆</span>
           </div>
 
@@ -85,7 +86,7 @@
               <div class="group-head">
                 <Globe2 :size="18" />
                 <div>
-                  <h3>投影中心与轴向</h3>
+                  <h3>{{ isEqualEarth ? '投影中心' : '投影中心与轴向' }}</h3>
                 </div>
               </div>
 
@@ -141,7 +142,7 @@
               </template>
             </section>
 
-            <section class="param-group">
+            <section v-if="!isEqualEarth" class="param-group">
               <div class="group-head">
                 <Cone :size="18" />
                 <div>
@@ -194,6 +195,12 @@
                 <p class="metric-note">{{ standardFeatures.label }}</p>
               </template>
             </section>
+            <section v-else class="param-group equal-earth-properties">
+              <div class="group-head"><Map :size="18" /><h3>固定投影性质</h3></div>
+              <p>等面积 · 伪圆柱 · 全球</p>
+              <p class="metric-note">{{ standardFeatures.label }}</p>
+              <p>纬线平行，经线弯曲；极点表示为极线。保持面积，不保持形状。</p>
+            </section>
           </div>
           <div class="display-controls" data-tour="layers">
             <section class="param-group display-group scene-display-group">
@@ -206,7 +213,7 @@
               <div class="check-list">
                 <label class="check-row">
                   <input type="checkbox" :checked="projectionParams.showSurface" @change="setBoolean('showSurface', $event)" />
-                  <span>辅助投影面 <small>Auxiliary Surface</small></span>
+                  <span>{{ isEqualEarth ? '数学投影平面' : '辅助投影面' }} <small>{{ isEqualEarth ? 'Coordinate Plane' : 'Auxiliary Surface' }}</small></span>
                 </label>
                 <label v-if="teaching.source" class="check-row">
                   <input type="checkbox" :checked="projectionParams.showLightSource" @change="setBoolean('showLightSource', $event)" />
@@ -279,7 +286,7 @@
             <template v-if="projectionFamily === 'cylinder'">
               <h4 :class="{ 'active-explanation': constructionPhase === 'mathematics' }">G → M：按{{ currentMode.label === '常用投影' ? '等距条件' : currentMode.label + '条件' }}确定实际投影</h4>
             </template>
-            <p>{{ projectionFamily === 'cylinder' ? teaching.mapping : demoState.step === 0 ? teaching.surface : demoState.step === 1 ? teaching.mapping : '展开后的坐标服从同一投影公式。球面到辅助面的映射一般发生变形；辅助圆柱或圆锥的展开不再改变面内长度。' }}</p>
+            <p>{{ projectionFamily === 'cylinder' ? teaching.mapping : demoState.step === 0 ? teaching.surface : demoState.step === 1 ? teaching.mapping : teaching.flat || '展开后的坐标服从同一投影公式。球面到辅助面的映射一般发生变形；辅助圆柱或圆锥的展开不再改变面内长度。' }}</p>
             <p v-if="projectionFamily === 'cylinder' && demoState.step === 2">圆柱展开只改变空间姿态，不再改变面内长度；最终坐标与右侧相同。</p>
             <p v-if="projectionParams.showIndicatrix" class="indicatrix-explanation">{{ indicatrixExplanation }} 三维斜视产生的额外视觉压缩，不属于地图投影变形。</p>
           </div>
@@ -318,14 +325,17 @@ const projectionParams = ref(normalizeProjectionParams('cylinder', 'conformal'))
 const familyParams = {
   cylinder: normalizeProjectionParams('cylinder', 'conformal'),
   planar: normalizeProjectionParams('planar', 'conformal'),
-  conic: normalizeProjectionParams('conic', 'conformal', { latitudeOfOrigin: 35 })
+  conic: normalizeProjectionParams('conic', 'conformal', { latitudeOfOrigin: 35 }),
+  equalEarth: normalizeProjectionParams('equalEarth', 'equalArea')
 };
+let modeBeforeEqualEarth = 'conformal';
+const isEqualEarth = computed(() => projectionFamily.value === 'equalEarth');
 const replayKey = ref(0);
 const tourRef = ref(null);
 const sceneRef = ref(null);
 const demoState = ref({ step: 0, playing: false });
 const constructionPhase = ref('');
-const steps = ['辅助面', '投影映射', '平面结果'];
+const steps = computed(() => isEqualEarth.value ? ['球面坐标', '等面积映射', '平面结果'] : ['辅助面', '投影映射', '平面结果']);
 const details = computed(() => getProjectionDetails(projectionFamily.value, projectionMode.value, projectionParams.value));
 const teaching = computed(() => getProjectionTeaching(projectionFamily.value, projectionMode.value, projectionParams.value));
 const indicatrixExplanation = computed(() => projectionMode.value === 'conformal'
@@ -359,11 +369,16 @@ const setFamily = (family) => {
   const longitude = projectionFamily.value === 'planar' ? current.projectionCenterLon : current.centralMeridian;
   const display = Object.fromEntries(Object.entries(current).filter(([key]) => key.startsWith('show') || key === 'viewScale'));
   const carry = { ...familyParams[family], ...display, centralMeridian: longitude, projectionCenterLon: longitude };
+  if (family === 'equalEarth') {
+    modeBeforeEqualEarth = projectionMode.value;
+    projectionMode.value = 'equalArea';
+  } else if (isEqualEarth.value) projectionMode.value = modeBeforeEqualEarth;
   projectionFamily.value = family;
   projectionParams.value = normalizeProjectionParams(family, projectionMode.value, carry);
 };
 
 const setMode = (mode) => {
+  if (isEqualEarth.value && mode !== 'equalArea') return;
   if (projectionMode.value === mode) return;
   projectionMode.value = mode;
   normalizeCurrentParams();
@@ -718,6 +733,8 @@ button {
 }
 
 .display-controls { display: grid; gap: 14px; margin-top: 14px; }
+.equal-earth-properties p { margin: 8px 0 0; font-size: 13px; color: #666; line-height: 1.65; }
+.equal-earth-properties .metric-note { color: #8a3328; }
 
 .param-group {
   padding: 14px;
@@ -949,7 +966,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid #477563; outline-
   .brand-block h1 { font-size: 18px; }
   .shared-parameter-panel { display: block; }
   .display-controls { margin-top: 14px; }
-  .family-tabs { gap: 4px; }
+  .family-tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
   .family-tabs button { padding: 9px 7px; }
   .family-tabs button span { font-size: 13px; }
   .family-tabs button small { font-size: 10px; }

@@ -24,7 +24,7 @@ const assertFinitePair = (pair, label) => {
 for (const family of Object.keys(PROJECTION_FAMILIES)) {
   assert.ok(PROJECTION_CONFIG[family], `${family} should have projection config`);
 
-  for (const mode of Object.keys(PROJECTION_MODES)) {
+  for (const mode of Object.keys(PROJECTION_CONFIG[family])) {
     const details = PROJECTION_CONFIG[family][mode];
     assert.ok(details?.title, `${family}/${mode} should have a Chinese title`);
     assert.ok(details?.titleEn, `${family}/${mode} should have an English title`);

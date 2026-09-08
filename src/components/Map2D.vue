@@ -7,7 +7,8 @@
         <p>{{ details.titleEn }} · {{ details.property }}</p>
       </div>
       <div class="map-actions">
-        <div class="mode-tabs" aria-label="二维投影性质">
+        <span v-if="props.projectionFamily === 'equalEarth'" class="projection-property">等面积伪圆柱投影</span>
+        <div v-else class="mode-tabs" aria-label="二维投影性质">
           <button
             v-for="mode in modeOptions"
             :key="mode.key"
@@ -209,6 +210,8 @@ onBeforeUnmount(() => { disposed = true; resizeObserver?.disconnect(); });
   gap: 8px;
   flex-shrink: 0;
 }
+
+.projection-property { border-left: 3px solid #3c5b4c; padding: 5px 10px; color: #3c5b4c; font-size: 13px; font-weight: 600; }
 
 .mode-tabs {
   display: flex;

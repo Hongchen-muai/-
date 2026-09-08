@@ -1,16 +1,17 @@
 import {
   geoProjection, geoRotation, geoClipCircle, geoClipAntimeridian, geoTransform,
   geoStream, geoPath, geoCircle, geoGraticule,
-  geoStereographicRaw, geoAzimuthalEqualAreaRaw, geoOrthographicRaw
+  geoStereographicRaw, geoAzimuthalEqualAreaRaw, geoOrthographicRaw, geoEqualEarthRaw
 } from 'd3';
 import {
   DEG2RAD, RAD2DEG, normalizeProjectionParams, mercatorRaw,
   cylindricalEqualAreaRaw, equidistantCylindricalRaw, conicRaw,
-  conicForward, getConicConstants, getStandardFeatures, clamp
+  conicForward, getConicConstants, getStandardFeatures, clamp, EQUAL_EARTH_STANDARD_PARALLEL
 } from './mapMath.js';
 
 export const SPHERE = { type: 'Sphere' };
 export const GRATICULE = geoGraticule().step([30, 15]).precision(2)();
+export const EQUAL_EARTH_PLANE_DEPTH = -4;
 
 const rotateStream = (rotation, sink) => geoTransform({
   point(lambda, phi) {
@@ -40,6 +41,7 @@ export const lonLatToVector = ([lon, lat], radius = 1) => {
 };
 
 export const createProjectionModel = (family, mode, input = {}) => {
+  if (family === 'equalEarth') mode = 'equalArea';
   const params = normalizeProjectionParams(family, mode, input);
   const transverse = family === 'cylinder' && params.aspect === 'transverse';
   const angles = family === 'planar'
@@ -49,7 +51,9 @@ export const createProjectionModel = (family, mode, input = {}) => {
   const constants = family === 'conic'
     ? getConicConstants(mode, params.standardParallel1, params.standardParallel2) : null;
   let raw;
-  if (family === 'cylinder') {
+  if (family === 'equalEarth') {
+    raw = geoEqualEarthRaw;
+  } else if (family === 'cylinder') {
     raw = (mode === 'conformal' ? mercatorRaw : mode === 'equalArea' ? cylindricalEqualAreaRaw : equidistantCylindricalRaw)(params.standardParallel);
   } else if (family === 'conic') {
     raw = conicRaw(mode, params.standardParallel1, params.standardParallel2, params.latitudeOfOrigin);
@@ -103,7 +107,8 @@ export const createProjectionModel = (family, mode, input = {}) => {
   }
   const origin = family === 'planar' ? [params.projectionCenterLon, params.projectionCenterLat]
     : [params.centralMeridian, family === 'conic' ? params.latitudeOfOrigin : 0];
-  const domainLabel = family === 'planar' ? '展示范围：以投影中心为准的半球（角距 ≤ 90°）'
+  const domainLabel = family === 'equalEarth' ? '展示范围：全球；南北极为极线，沿中央经线背面分割'
+    : family === 'planar' ? '展示范围：以投影中心为准的半球（角距 ≤ 90°）'
     : family === 'conic' ? `展示纬度：${latitudeRange[0]}° 至 ${latitudeRange[1]}°（区域投影）`
       : mode === 'conformal' ? `展示范围：${transverse ? '轴向' : ''}纬度 ±85°，极点不在定义域内` : '展示范围：全球（沿背面经线分割）';
   const surface = { rho0: 0, anchor: 0, originOffset: 0 };
@@ -153,6 +158,7 @@ export const surfacePoint = (model, point, unfold = 0, radius = 5) => {
   const [x, y] = model.undoOutput(point);
   const { family, mode, params, constants } = model;
   if (u === 1) return [point[0] * radius, point[1] * radius, 0];
+  if (family === 'equalEarth') return [x * radius, y * radius, (1 - u) * radius * EQUAL_EARTH_PLANE_DEPTH];
   if (family === 'planar') return [x * radius, y * radius, (1 - u) * radius * Math.cos(params.standardCircleDistance * DEG2RAD)];
   const local = model.raw.invert(x, y);
   const lambda = local[0];
@@ -191,8 +197,10 @@ export const sourcePoint = (model, point, radius = 5) => {
 export const projectionLinks = (model, radius = 5) => {
   const links = [];
   const cylindrical = model.family === 'cylinder';
-  const longitudes = cylindrical ? [-120, 0, 120] : model.family === 'planar' ? [-60, -30, 0, 30, 60] : [-150, -90, -30, 30, 90, 150];
+  const longitudes = cylindrical ? [-120, 0, 120] : model.family === 'planar' ? [-60, -30, 0, 30, 60]
+    : model.family === 'equalEarth' ? [-120, -60, 0, 60, 120] : [-150, -90, -30, 30, 90, 150];
   const samples = (cylindrical ? [-40, -20, 20, 40] : [-40, 0, 40]).flatMap(lat => longitudes.map(lon => [lon, lat]));
+  if (model.family === 'equalEarth') samples.push([0, EQUAL_EARTH_STANDARD_PARALLEL]);
   if (cylindrical && ![20, 40].includes(model.params.standardParallel)) {
     samples.push([0, model.params.standardParallel]);
     if (model.params.standardParallel) samples.push([0, -model.params.standardParallel]);
@@ -221,7 +229,8 @@ export const projectionLinks = (model, radius = 5) => {
     }
     links.push({ geographic, flat, source, target, origin, kind, geometric, local: [lon, lat] });
   }
-  const focus = links.find(link => link.local[0] === 0 && link.local[1] === model.params.standardParallel && Math.hypot(...link.target.map((v, i) => v - link.source[i])) > 1e-6)
+  const focus = (model.family === 'equalEarth' && links.find(link => link.local[0] === 0 && link.local[1] === EQUAL_EARTH_STANDARD_PARALLEL))
+    || links.find(link => link.local[0] === 0 && link.local[1] === model.params.standardParallel && Math.hypot(...link.target.map((v, i) => v - link.source[i])) > 1e-6)
     || links.find(link => link.local[0] === 0 && link.local[1] === 40)
     || links.find(link => link.local[0] === 0 && link.local[1] > 0) || links[0];
   if (focus) focus.focus = true;

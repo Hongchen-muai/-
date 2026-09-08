@@ -1,6 +1,16 @@
 import { cylindricalStandardComparison } from './projectionModel.js';
+import { EQUAL_EARTH_STANDARD_PARALLEL } from './mapMath.js';
 
 export const getProjectionTeaching = (family, mode, params) => {
+  if (family === 'equalEarth') return {
+    formula: 'sin θ = (√3/2) sin φ；y = R f(θ)；x = 2Rλ cos θ / [√3 f′(θ)]',
+    notation: 'λ 为相对中央经线的经差，φ 为纬度，θ 为参数纬度，均以弧度代入。f(θ) = A₁θ + A₂θ³ + A₃θ⁷ + A₄θ⁹；A₁ = 1.340264，A₂ = −0.081106，A₃ = 0.000893，A₄ = 0.003796。',
+    mapping: '先由参数纬度 θ 的多项式确定纬线的纵向位置，再按面积守恒确定横向间距，使 ∂x/∂λ · ∂y/∂φ = R² cos φ。P 到 M 的虚线是坐标对应，不是光线；只有完成后的投影保证等面积，过渡帧不代表另一种等面积投影。',
+    surface: '伪圆柱表示经纬网的类型，不是可展开的物理圆柱。纬线为直线且间距不等，同一纬线上经线等间隔，中央经线为直线。后方平面仅承载数学坐标，其深度不属于投影参数。',
+    flat: '平面由空间位置移到正视位置，x、y 坐标不再变化。南北极各自展开为一段极线，边缘形状仍会变形，不能将等面积理解为无变形。',
+    standardNote: `蓝红线对应纬度约 ±${EQUAL_EARTH_STANDARD_PARALLEL.toFixed(2)}°。纬线方向长度比例为 1，由固定公式决定，不是平面与球面的交圈，也不保证所有方向的长度或角度不变。`,
+    rays: '坐标映射连线', rayEnglish: 'Mathematical Mapping', source: false
+  };
   if (family === 'cylinder') {
     const common = params.aspect === 'transverse' ? 'λ、φ 为旋转后的轴向经纬度；展开后恢复北向朝上。' : 'λ 为相对中央经线的经差，φ 为纬度，k₀ = cos φₛ。';
     const line = cylindricalStandardComparison(mode, params);

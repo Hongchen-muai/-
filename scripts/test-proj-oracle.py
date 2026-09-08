@@ -19,6 +19,7 @@ CASES = [
     ("cylinder", "conformal", "tmerc", {"k_0": 1}, {"aspect": "transverse"}),
     ("cylinder", "equalArea", "tcea", {"k_0": 1}, {"aspect": "transverse"}),
     ("cylinder", "compromise", "cass", {}, {"aspect": "transverse"}),
+    ("equalEarth", "equalArea", "eqearth", {}, {}),
 ]
 ANCHORS = [
     ("Beijing", 116.4, 39.9), ("Madagascar", 47.5, -18.9),
@@ -37,6 +38,12 @@ for family, mode, proj, proj_params, params in CASES:
             continue
         payload.append([family, mode, {**params, "centralMeridian": lon0, "projectionCenterLon": lon0}, [lon, lat]])
         expected.append((f"{proj}/{name}", x, y))
+for lon0 in [-180, -90, 0, 110, 180]:
+    oracle = Proj(proj="eqearth", R=1, lon_0=lon0)
+    for name, lon, lat in ANCHORS + [("East dateline", 179.99, 30), ("West dateline", -179.99, -30), ("Near north pole", 20, 89.99), ("Near south pole", -30, -89.99)]:
+        x, y = oracle(lon, lat)
+        payload.append(["equalEarth", "equalArea", {"centralMeridian": lon0}, [lon, lat]])
+        expected.append((f"eqearth/{lon0}/{name}", x, y))
 js = """
 import {createProjectionModel} from './src/core/projectionModel.js';
 let input=''; for await (const chunk of process.stdin) input+=chunk;
