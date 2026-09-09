@@ -147,6 +147,9 @@ export const DEFAULT_PARAMS = {
   standardParallel2: 47,
   standardCircleDistance: 0,
   aspect: 'normal',
+  obliqueCenterLon: 110,
+  obliqueCenterLat: 35,
+  obliqueAzimuth: 60,
   viewScale: 100,
   showGraticule: true,
   showStandardLine: true,
@@ -183,6 +186,15 @@ export const getProjectionDetails = (family, mode, params = {}) => {
       details.usage = '球面横轴模型，适合中央经线附近的南北向区域；不是采用参考椭球与分带参数的 UTM 坐标系。';
       details.distortion = mode === 'conformal' ? '保持局部角度；远离中央经线变形增大，距轴向赤道 90° 处出现奇点。' : '性质作用于旋转后的球面坐标；红线为轴向标准线，不是地理纬线。';
     }
+    if (p.aspect === 'oblique') {
+      details.title = mode === 'conformal' ? '斜轴墨卡托投影（球面）' : `斜轴${mode === 'equalArea' ? '圆柱等面积' : '等距圆柱'}投影`;
+      details.titleEn = `Oblique ${mode === 'conformal' ? 'Mercator' : mode === 'equalArea' ? 'Cylindrical Equal-Area' : 'Equidistant Cylindrical'}`;
+      details.history = '将相应正轴圆柱投影作球面轴向变换，以中央线上的基点和该点的方位角确定新的经纬网。这里采用球面模型，不是椭球 Hotine 坐标系统。';
+      details.usage = '适合沿斜向延伸地区的投影教学。中心点与中央线方位角控制斜轴定位，相切圆柱沿中央线大圆接触球面。';
+      details.distortion = mode === 'conformal' ? '保持局部角度；远离中央线变形增大，轴向极点为奇点。'
+        : mode === 'equalArea' ? '保持面积比例，但形状和角度可以改变。红线是轴向标准线，不是地理纬线。'
+          : '沿轴向经线及轴向标准线的长度比例为 1，不保持任意方向的距离。';
+    }
   }
   return details;
 };
@@ -198,7 +210,10 @@ export const normalizeProjectionParams = (family = 'cylinder', mode = 'conformal
     standardParallel1: clamp(finiteNumber(source.standardParallel1, 25), -80, 80),
     standardParallel2: clamp(finiteNumber(source.standardParallel2, 47), -80, 80),
     standardCircleDistance: clamp(Math.abs(finiteNumber(source.standardCircleDistance, 0)), 0, 75),
-    aspect: source.aspect === 'transverse' ? 'transverse' : 'normal',
+    aspect: ['transverse', 'oblique'].includes(source.aspect) ? source.aspect : 'normal',
+    obliqueCenterLon: clamp(finiteNumber(source.obliqueCenterLon, 110), -180, 180),
+    obliqueCenterLat: clamp(finiteNumber(source.obliqueCenterLat, 35), -90, 90),
+    obliqueAzimuth: clamp(finiteNumber(source.obliqueAzimuth, 60), 0, 360),
     viewScale: clamp(finiteNumber(source.viewScale, 100), 60, 180),
     showGraticule: Boolean(source.showGraticule),
     showStandardLine: Boolean(source.showStandardLine),
@@ -294,7 +309,8 @@ export const getStandardFeatures = (family, params, mode = 'conformal') => {
     return {
       type: 'latitudes',
       values: lat === 0 ? [0] : [lat, -lat],
-      label: normalized.aspect === 'transverse'
+      label: normalized.aspect === 'oblique' && lat === 0 ? '轴向标准线：过中心点 C 的大圆（轴向纬度 0°）'
+        : normalized.aspect !== 'normal'
         ? `轴向标准线：旋转后纬度 ±${lat.toFixed(1)}°，不是地理纬线`
         : lat === 0 ? '标准纬线：赤道（纬度 0°）' : `割线纬度：±${lat.toFixed(1)}°，沿纬线长度比例为 1`
     };
@@ -430,7 +446,7 @@ export const getSurfaceMetrics = (family, mode, params, radius = 5) => {
       contact: normalized.standardParallel === 0 ? '相切圆柱 Tangent Cylinder' : '相割圆柱 Secant Cylinder',
       primary: `圆柱半径 ${(cylinderRadius / radius).toFixed(3)} R`,
       radius: cylinderRadius,
-      aspectLabel: normalized.aspect === 'transverse' ? '横轴 Transverse' : '正轴 Normal'
+      aspectLabel: normalized.aspect === 'oblique' ? '斜轴 Oblique' : normalized.aspect === 'transverse' ? '横轴 Transverse' : '正轴 Normal'
     };
   }
 

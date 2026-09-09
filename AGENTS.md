@@ -16,7 +16,7 @@ The core architectural philosophy is **strict decoupling of the 3D WebGL engine 
 When writing code for the 3D space (`threeApp.js`), adhere to these specific constants and rules to avoid visual glitches (Z-fighting):
 - **Earth Radius (`R_EARTH`)**: Always use `5.0`.
 - **Projection Geometries (Cylinder, Cone, Plane)**: Must be rendered slightly larger than the Earth to avoid Z-fighting. Use a multiplier of `1.01` (e.g., `radius = R_EARTH * 1.01`).
-- **Euler Angles for Oblique Projections**: The system supports "Rotate Plane" mode (true oblique projections). To implement this mathematically, the rotation is applied inversely to the geographical coordinates using `THREE.Euler('YXZ')`. Look at the `rotateLonLat` function in `threeApp.js`.
+- **Oblique Cylinders**: Use the shared `geoRotation([-lonC, -latC, azimuth - 90])` in `projectionModel.js`. `orientToWorld` applies the inverse aspect to the 3D surface while keeping the globe's geographic pole upright; the shader must match this helper. Do not introduce separate geographical rotations in the two renderers.
 
 ## 3. UI Conventions (Minimalist Theme)
 
@@ -81,6 +81,7 @@ If asked to add a new projection type, follow these exact 3 steps:
 - When making file edits, prefer exact string replacement over full file rewrites.
 - After modifying math logic, verify that the 3D invariant line (red) perfectly matches the 2D invariant line (red) and that they both reflect the `secantLat` mathematically.
 - Ensure `npm run build` passes before concluding your task.
+- Testing preference (2026-09-09): verify desktop behavior only by default. Do not perform routine mobile viewport/adaptation checks. Scope math and interaction tests to the changed functionality and relevant regressions.
 
 ## 6. Cartographic Terminology Standards (2026-05-12 Update)
 

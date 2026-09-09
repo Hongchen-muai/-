@@ -1,0 +1,104 @@
+[
+  {
+    "badPaths": false,
+    "center2D": true,
+    "errors": [],
+    "glyphs": 80,
+    "labels": [
+      "示例 P：轴向 φ = 30°",
+      "P=G",
+      "M",
+      "O",
+      "C"
+    ],
+    "stage": {
+      "playing": "false",
+      "projection": "cylinder/conformal",
+      "step": "1"
+    },
+    "title": "斜轴墨卡托投影（球面）"
+  },
+  {
+    "badPaths": false,
+    "center2D": true,
+    "errors": [],
+    "glyphs": 80,
+    "labels": [
+      "C"
+    ],
+    "stage": {
+      "playing": "false",
+      "projection": "cylinder/conformal",
+      "step": "2"
+    },
+    "title": "斜轴墨卡托投影（球面）"
+  },
+  {
+    "badPaths": false,
+    "center2D": true,
+    "errors": [],
+    "glyphs": 81,
+    "labels": [
+      "示例 P：轴向 φ = 30°",
+      "P=G",
+      "M",
+      "O",
+      "C"
+    ],
+    "stage": {
+      "playing": "false",
+      "projection": "cylinder/equalArea",
+      "step": "1"
+    },
+    "title": "斜轴圆柱等面积投影"
+  },
+  {
+    "badPaths": false,
+    "center2D": true,
+    "errors": [],
+    "glyphs": 81,
+    "labels": [
+      "C"
+    ],
+    "stage": {
+      "playing": "false",
+      "projection": "cylinder/equalArea",
+      "step": "2"
+    },
+    "title": "斜轴圆柱等面积投影"
+  },
+  {
+    "badPaths": false,
+    "center2D": true,
+    "errors": [],
+    "glyphs": 81,
+    "labels": [
+      "示例 P：轴向 φ = 30°",
+      "P=G",
+      "M",
+      "O",
+      "C"
+    ],
+    "stage": {
+      "playing": "false",
+      "projection": "cylinder/compromise",
+      "step": "1"
+    },
+    "title": "斜轴等距圆柱投影"
+  },
+  {
+    "badPaths": false,
+    "center2D": true,
+    "errors": [],
+    "glyphs": 81,
+    "labels": [
+      "C"
+    ],
+    "stage": {
+      "playing": "false",
+      "projection": "cylinder/compromise",
+      "step": "2"
+    },
+    "title": "斜轴等距圆柱投影"
+  }
+]

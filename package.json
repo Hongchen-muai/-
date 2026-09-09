@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test:math": "node scripts/test-map-math.js && node scripts/test-projection-model.js && node scripts/test-equal-earth.js",
+    "test:math": "node scripts/test-map-math.js && node scripts/test-projection-model.js && node scripts/test-equal-earth.js && node scripts/test-oblique-cylinder.js",
     "test:tour": "node scripts/test-onboarding.js",
     "test:ui": "node scripts/test-ui-help.js && npm run test:tour",
     "test": "npm run test:math && node scripts/test-scene-presentation.js"

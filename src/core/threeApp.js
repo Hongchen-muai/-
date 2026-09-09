@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import gsap from 'gsap';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { createProjectionModel, projectedLines, surfacePoint, sourcePoint, lonLatToVector, projectionLinks, SPHERE, GRATICULE, EQUAL_EARTH_PLANE_DEPTH } from './projectionModel.js';
+import { createProjectionModel, projectedLines, surfacePoint, sourcePoint, lonLatToVector, projectionLinks, orientToWorld, SPHERE, GRATICULE, EQUAL_EARTH_PLANE_DEPTH } from './projectionModel.js';
 import { DEG2RAD, conicForward } from './mapMath.js';
 import { loadWorldData } from './worldData.js';
 import { getIndicatrices } from './indicatrix.js';
@@ -24,6 +24,8 @@ const morphVertex = `
   attribute vec2 aFlat;
   attribute vec2 aCurve;
   uniform float uMapping, uUnfold, uFamily, uRadius, uN, uRho0, uAnchor, uPlane, uTransverse, uOffset, uOriginOffset;
+  uniform float uOblique, uObliqueTilt;
+  uniform vec2 uObliqueRotation;
   void main() {
     float u = uUnfold;
     vec3 p;
@@ -48,6 +50,11 @@ const morphVertex = `
         vertical * sin(tilt) + depth * cos(tilt) + abs(uN) * uRho0 * (1.0 - u));
     }
     if (uTransverse > 0.5) p = vec3(p.y, -p.x, p.z);
+    if (uOblique > 0.5) {
+      p.xy = vec2(uObliqueRotation.x * p.x - uObliqueRotation.y * p.y, uObliqueRotation.y * p.x + uObliqueRotation.x * p.y);
+      float tilt = uObliqueTilt * (1.0 - u);
+      p.yz = vec2(cos(tilt) * p.y - sin(tilt) * p.z, sin(tilt) * p.y + cos(tilt) * p.z);
+    }
     p = mix(aSource, p * mix(uOffset, 1.0, u), uMapping);
     gl_PointSize = 6.0;
     gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
@@ -68,6 +75,9 @@ const makeMorphMaterial = (color, opacity, { surface = false, offset = 1 } = {})
       uOriginOffset: { value: model.surface.originOffset * R_EARTH },
       uPlane: { value: R_EARTH * (model.family === 'equalEarth' ? EQUAL_EARTH_PLANE_DEPTH : Math.cos(p.standardCircleDistance * DEG2RAD)) },
       uTransverse: { value: model.transverse ? 1 : 0 }, uOffset: { value: offset },
+      uOblique: { value: model.oblique ? 1 : 0 },
+      uObliqueTilt: { value: model.orientation.pitch },
+      uObliqueRotation: { value: new THREE.Vector2(Math.cos(model.orientation.roll), Math.sin(model.orientation.roll)) },
       uColor: { value: new THREE.Color(color) }, uOpacity: { value: opacity }
     },
     vertexShader: morphVertex,
@@ -147,7 +157,7 @@ const addMappedLines = (geometry, color, opacity, options) => {
 
 const localWorldPoint = (coord, radius) => {
   const v = lonLatToVector(model.rotation(coord), radius);
-  return model.transverse ? [v[1], -v[0], v[2]] : v;
+  return orientToWorld(model, v);
 };
 
 const earthLines = (data, color, opacity, standard = false) => {
@@ -305,7 +315,7 @@ const addRays = () => {
       const distance = Math.acos(Math.cos(link.local[0] * DEG2RAD) * Math.cos(link.local[1] * DEG2RAD)) / DEG2RAD;
       world.userData.probeCaption = model.family === 'planar'
         ? `示例 P：c = ${distance.toFixed(1)}°`
-        : `示例 P：${model.transverse ? '轴向 ' : ''}φ = ${model.family === 'equalEarth' ? Number(link.local[1].toFixed(2)) : link.local[1]}°`;
+        : `示例 P：${model.transverse || model.oblique ? '轴向 ' : ''}φ = ${model.family === 'equalEarth' ? Number(link.local[1].toFixed(2)) : link.local[1]}°`;
       const tracer = point(origin, grey);
       world.userData.pulses.push({ tracer, origin, end, geometric, target });
     }
@@ -317,6 +327,15 @@ const addRays = () => {
     sourceMarker.renderOrder = RENDER_ORDER.markers;
     world.add(sourceMarker);
     world.userData.annotations.push({ text: 'O', position: sourceMarker.position.clone(), owner: sourceMarker, color: '#303a37' });
+  }
+  if (model.oblique && model.params.showStandardLine) {
+    const center = new THREE.Mesh(new THREE.SphereGeometry(0.095, 12, 8), earthLineMaterial(DIAGRAM_COLORS.source, 0.95));
+    center.position.set(...localWorldPoint(model.origin, R_EARTH * 1.004));
+    center.renderOrder = RENDER_ORDER.globeLines;
+    earth.add(center);
+    world.userData.annotations.push({ text: 'C', position: center.position.clone(), owner: center, color: '#416f8b', surfacePoint: true, obliqueCenter: 'source' });
+    const mappedCenter = addMappedLines({ type: 'Point', coordinates: model.origin }, DIAGRAM_COLORS.source, 0.95);
+    world.userData.annotations.push({ text: 'C', owner: mappedCenter, color: '#416f8b', obliqueCenter: 'map' });
   }
 };
 
@@ -363,7 +382,11 @@ const updateAnnotations = () => {
     let visible = true;
     for (let parent = item.owner; parent; parent = parent.parent) if (!parent.visible) visible = false;
     if (!visible || item.owner.material.opacity < 0.12) continue;
-    const point = item.position.clone().project(camera);
+    if (item.obliqueCenter === 'source' && progress.unfold >= 0.01) continue;
+    if (item.obliqueCenter === 'map' && progress.unfold < 0.01) continue;
+    const anchor = item.obliqueCenter === 'map' ? new THREE.Vector3(...surfacePoint(model, [0, 0], progress.unfold)) : item.position;
+    if (item.surfacePoint && anchor.clone().transformDirection(camera.matrixWorldInverse).z <= 0) continue;
+    const point = anchor.clone().project(camera);
     if (Math.abs(point.x) > 1 || Math.abs(point.y) > 1 || Math.abs(point.z) > 1) continue;
     const x = (point.x + 1) * width / 2, y = (1 - point.y) * height / 2;
     const w = item.text.length * 8 + 8, h = 20;

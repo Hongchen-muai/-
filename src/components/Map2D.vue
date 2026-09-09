@@ -67,7 +67,7 @@ import { PROJECTION_MODES, getProjectionDetails, normalizeProjectionParams } fro
 import { createProjectionModel, fitProjection, SPHERE, GRATICULE } from '../core/projectionModel.js';
 import { getIndicatrices, INDICATRIX_RADIUS } from '../core/indicatrix.js';
 import { loadWorldData } from '../core/worldData.js';
-import { projectionHelp } from '../ui/projectionHelp.js';
+import { projectionHelp, annotationHelp } from '../ui/projectionHelp.js';
 
 const props = defineProps({
   projectionFamily: { type: String, default: 'cylinder' },
@@ -137,6 +137,12 @@ const renderMap = () => {
     svg.append('path').attr('d', `M${x - 4},${y}h8M${x},${y - 4}v8`)
       .attr('class', 'projection-origin').attr('stroke', '#333').attr('stroke-width', 1.2)
       .append('title').text('坐标原点 (0, 0)');
+  }
+  if (model.value.oblique && params.value.showStandardLine) {
+    const [x, y] = projection(model.value.origin);
+    const center = svg.append('g').attr('class', 'oblique-center').attr('data-help', annotationHelp('C', 'cylinder')).attr('tabindex', 0).attr('aria-label', '斜轴中心点 C');
+    center.append('circle').attr('cx', x).attr('cy', y).attr('r', 3.5).attr('fill', '#416f8b').attr('stroke', '#fff').attr('stroke-width', 1);
+    center.append('text').attr('x', x + 6).attr('y', y - 6).attr('fill', '#416f8b').attr('font-size', 12).attr('font-weight', 700).text('C');
   }
   statusText.value = '';
 };

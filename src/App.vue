@@ -100,14 +100,14 @@
               </template>
 
               <template v-else>
-                <label class="param-row" :data-help="help.centralMeridian">
+                <label v-if="!isObliqueCylinder" class="param-row" :data-help="help.centralMeridian">
                   <span>
                     中央经线
                     <small>Central Meridian</small>
                   </span>
                   <input type="number" :value="projectionParams.centralMeridian" @input="setNumber('centralMeridian', $event)" @change="setNumber('centralMeridian', $event)" @blur="setNumber('centralMeridian', $event)" @keydown.enter="$event.target.blur()" />
                 </label>
-                <input class="range" :data-help="help.centralMeridian" aria-label="中央经线滑块" type="range" min="-180" max="180" :value="projectionParams.centralMeridian" @input="setNumber('centralMeridian', $event)" />
+                <input v-if="!isObliqueCylinder" class="range" :data-help="help.centralMeridian" aria-label="中央经线滑块" type="range" min="-180" max="180" :value="projectionParams.centralMeridian" @input="setNumber('centralMeridian', $event)" />
 
                 <label v-if="projectionFamily === 'conic'" class="param-row" :data-help="help.latitudeOfOrigin">
                   <span>
@@ -118,7 +118,7 @@
                 </label>
                 <input v-if="projectionFamily === 'conic'" class="range" :data-help="help.latitudeOfOrigin" aria-label="投影原点纬度滑块" type="range" min="-80" max="80" :value="projectionParams.latitudeOfOrigin" @input="setNumber('latitudeOfOrigin', $event)" />
 
-                <div v-if="projectionFamily === 'cylinder'" class="segmented-field" :data-help="help.aspect">
+                <div v-if="projectionFamily === 'cylinder'" class="segmented-field aspect-field" :data-help="help.aspect">
                   <span>
                     投影轴向
                     <small>Projection Aspect</small>
@@ -126,9 +126,30 @@
                   <div class="segmented-control">
                     <button :class="{ active: projectionParams.aspect === 'normal' }" :aria-pressed="projectionParams.aspect === 'normal'" @click="setParam('aspect', 'normal')">正轴</button>
                     <button :class="{ active: projectionParams.aspect === 'transverse' }" :aria-pressed="projectionParams.aspect === 'transverse'" @click="setParam('aspect', 'transverse')">横轴</button>
+                    <button :class="{ active: projectionParams.aspect === 'oblique' }" :aria-pressed="projectionParams.aspect === 'oblique'" @click="setParam('aspect', 'oblique')">斜轴</button>
                   </div>
                 </div>
               </template>
+            </section>
+
+            <section v-if="isObliqueCylinder" class="param-group oblique-parameters">
+              <div class="group-head"><Globe2 :size="18" /><h3>斜轴定位</h3></div>
+              <label class="param-row" :data-help="help.obliqueCenterLon">
+                <span>中心点经度 C<small>Centerline Point Longitude</small></span>
+                <input aria-label="斜轴中心点经度" type="number" min="-180" max="180" step="any" :value="projectionParams.obliqueCenterLon" @input="setNumber('obliqueCenterLon', $event)" @change="setNumber('obliqueCenterLon', $event)" @blur="setNumber('obliqueCenterLon', $event)" @keydown.enter="$event.target.blur()" />
+              </label>
+              <input class="range" :data-help="help.obliqueCenterLon" aria-label="斜轴中心点经度滑块" type="range" min="-180" max="180" step="0.1" :value="projectionParams.obliqueCenterLon" @input="setNumber('obliqueCenterLon', $event)" />
+              <label class="param-row" :data-help="help.obliqueCenterLat">
+                <span>中心点纬度 C<small>Centerline Point Latitude</small></span>
+                <input aria-label="斜轴中心点纬度" type="number" min="-90" max="90" step="any" :value="projectionParams.obliqueCenterLat" @input="setNumber('obliqueCenterLat', $event)" @change="setNumber('obliqueCenterLat', $event)" @blur="setNumber('obliqueCenterLat', $event)" @keydown.enter="$event.target.blur()" />
+              </label>
+              <input class="range" :data-help="help.obliqueCenterLat" aria-label="斜轴中心点纬度滑块" type="range" min="-90" max="90" step="0.1" :value="projectionParams.obliqueCenterLat" @input="setNumber('obliqueCenterLat', $event)" />
+              <label class="param-row" :data-help="help.obliqueAzimuth">
+                <span>中央线方位角<small>Centerline Azimuth</small></span>
+                <input aria-label="斜轴中央线方位角" type="number" min="0" max="360" step="any" :value="projectionParams.obliqueAzimuth" @input="setNumber('obliqueAzimuth', $event)" @change="setNumber('obliqueAzimuth', $event)" @blur="setNumber('obliqueAzimuth', $event)" @keydown.enter="$event.target.blur()" />
+              </label>
+              <input class="range" :data-help="help.obliqueAzimuth" aria-label="斜轴中央线方位角滑块" type="range" min="0" max="360" step="0.1" :value="projectionParams.obliqueAzimuth" @input="setNumber('obliqueAzimuth', $event)" />
+              <p class="oblique-note">{{ projectionParams.standardParallel === 0 ? '相切：中心点 C 位于切线大圆上；方位角从该点北向顺时针量取。' : '相割：C 为中央线参考点，不是球面与圆柱的几何交点。' }}</p>
             </section>
 
             <section v-if="!isEqualEarth" class="param-group">
@@ -142,7 +163,7 @@
               <template v-if="projectionFamily === 'cylinder'">
                 <label class="param-row" :data-help="help.standardParallel">
                   <span>
-                    {{ projectionParams.aspect === 'transverse' ? '轴向标准线角距' : '割线纬度（标准纬线）' }}
+                    {{ projectionParams.aspect !== 'normal' ? '轴向标准线角距' : '割线纬度（标准纬线）' }}
                     <small>Latitude of True Scale</small>
                   </span>
                   <input type="number" :value="projectionParams.standardParallel" @input="setNumber('standardParallel', $event)" @change="setNumber('standardParallel', $event)" @blur="setNumber('standardParallel', $event)" @keydown.enter="$event.target.blur()" />
@@ -323,6 +344,7 @@ const familyParams = {
 };
 let modeBeforeEqualEarth = 'conformal';
 const isEqualEarth = computed(() => projectionFamily.value === 'equalEarth');
+const isObliqueCylinder = computed(() => projectionFamily.value === 'cylinder' && projectionParams.value.aspect === 'oblique');
 const replayKey = ref(0);
 const tourRef = ref(null);
 const sceneRef = ref(null);
@@ -336,7 +358,7 @@ const indicatrixExplanation = computed(() => projectionMode.value === 'conformal
   ? '等角：展开正视时，微小圆仍为圆，大小可以不同。'
   : projectionMode.value === 'equalArea' ? '等面积：对应椭圆的面积相同，但形状可以不同。'
     : projectionFamily.value === 'planar' ? '正射：越靠近半球边缘，径向压缩越明显。'
-      : '等距：沿经线的局部长度比例为 1，不代表椭圆所有方向都不变。');
+      : `等距：沿${isObliqueCylinder.value ? '轴向' : ''}经线的局部长度比例为 1，不代表椭圆所有方向都不变。`);
 const goToStep = (index) => sceneRef.value?.goToStep(index);
 
 const currentFamily = computed(() => PROJECTION_FAMILIES[projectionFamily.value]);
@@ -450,7 +472,7 @@ button {
   top: 0;
   z-index: 20;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 232px 38px;
+  grid-template-columns: minmax(250px, .6fr) minmax(500px, 1fr) 38px;
   gap: 16px;
   align-items: center;
   padding: 12px 22px;
@@ -774,6 +796,11 @@ button {
 .segmented-control button {
   min-width: 56px;
 }
+.aspect-field { flex-direction: column; align-items: stretch; }
+.aspect-field .segmented-control { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.aspect-field .segmented-control button { padding: 8px 6px; }
+.oblique-note { margin: 8px 0 0; font-size: 12px; color: #647267; line-height: 1.6; }
+.oblique-parameters input[type="number"] { width: 88px; }
 
 .check-row {
   justify-content: flex-start;
@@ -885,6 +912,9 @@ button:focus-visible, input:focus-visible { outline: 2px solid #477563; outline-
 }
 
 @media (max-width: 980px) {
+  .top-bar { grid-template-columns: minmax(0, 1fr) 38px; }
+  .top-bar .projection-navigation { grid-column: 1 / -1; grid-row: 2; }
+  .intro-trigger { grid-column: 2; grid-row: 1; }
   .scene-stage,
   .map-panel {
     min-height: 0;
@@ -908,7 +938,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid #477563; outline-
 
 @media (max-width: 600px) {
   .top-bar { position: relative; padding: 12px; gap: 10px; grid-template-columns: minmax(0, 1fr) 38px; }
-  .top-bar .projection-selector { grid-column: 1 / -1; grid-row: 2; }
+  .top-bar .projection-navigation { grid-column: 1 / -1; grid-row: 2; }
   .intro-trigger { grid-column: 2; grid-row: 1; }
   .brand-block h1 { font-size: 18px; }
   .shared-parameter-panel { display: block; }

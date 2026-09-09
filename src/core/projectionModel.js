@@ -44,9 +44,12 @@ export const createProjectionModel = (family, mode, input = {}) => {
   if (family === 'equalEarth') mode = 'equalArea';
   const params = normalizeProjectionParams(family, mode, input);
   const transverse = family === 'cylinder' && params.aspect === 'transverse';
+  const oblique = family === 'cylinder' && params.aspect === 'oblique';
   const angles = family === 'planar'
     ? [-params.projectionCenterLon, -params.projectionCenterLat, 0]
+    : oblique ? [-params.obliqueCenterLon, -params.obliqueCenterLat, params.obliqueAzimuth - 90]
     : [-params.centralMeridian, 0, transverse ? 90 : 0];
+  const orientation = { roll: oblique ? (90 - params.obliqueAzimuth) * DEG2RAD : 0, pitch: oblique ? -params.obliqueCenterLat * DEG2RAD : 0 };
   const rotation = geoRotation(angles);
   const constants = family === 'conic'
     ? getConicConstants(mode, params.standardParallel1, params.standardParallel2) : null;
@@ -64,8 +67,8 @@ export const createProjectionModel = (family, mode, input = {}) => {
     raw = (lambda, phi) => base(lambda, phi).map((v) => v * factor);
     raw.invert = (x, y) => base.invert(x / factor, y / factor);
   }
-  const output = (point) => transverse ? [point[1], -point[0]] : point;
-  const undoOutput = (point) => transverse ? [-point[1], point[0]] : point;
+  const output = (point) => transverse ? [point[1], -point[0]] : oblique ? rotateXY(point, orientation.roll) : point;
+  const undoOutput = (point) => transverse ? [-point[1], point[0]] : oblique ? rotateXY(point, -orientation.roll) : point;
   const displayRaw = (lambda, phi) => output(raw(lambda, phi));
   displayRaw.invert = (x, y) => raw.invert(...undoOutput([x, y]));
 
@@ -106,11 +109,12 @@ export const createProjectionModel = (family, mode, input = {}) => {
       Array.from({ length: 361 }, (_, i) => rotation.invert([-180 + i, lat]))) };
   }
   const origin = family === 'planar' ? [params.projectionCenterLon, params.projectionCenterLat]
+    : oblique ? [params.obliqueCenterLon, params.obliqueCenterLat]
     : [params.centralMeridian, family === 'conic' ? params.latitudeOfOrigin : 0];
   const domainLabel = family === 'equalEarth' ? '展示范围：全球；南北极为极线，沿中央经线背面分割'
     : family === 'planar' ? '展示范围：以投影中心为准的半球（角距 ≤ 90°）'
     : family === 'conic' ? `展示纬度：${latitudeRange[0]}° 至 ${latitudeRange[1]}°（区域投影）`
-      : mode === 'conformal' ? `展示范围：${transverse ? '轴向' : ''}纬度 ±85°，极点不在定义域内` : '展示范围：全球（沿背面经线分割）';
+      : mode === 'conformal' ? `展示范围：${transverse || oblique ? '轴向' : ''}纬度 ±85°，极点不在定义域内` : `展示范围：全球（沿${oblique ? '轴向' : ''}背面经线分割）`;
   const surface = { rho0: 0, anchor: 0, originOffset: 0 };
   if (family === 'conic' && constants.n !== 0) {
     const refLat = (params.standardParallel1 + params.standardParallel2) / 2;
@@ -118,7 +122,22 @@ export const createProjectionModel = (family, mode, input = {}) => {
     surface.rho0 = rhoAt(params.latitudeOfOrigin);
     surface.anchor = Math.sin(refLat * DEG2RAD) + Math.sign(constants.n) * Math.sqrt(1 - constants.n ** 2) * (rhoAt(refLat) - surface.rho0);
   } else if (family === 'conic') surface.originOffset = -raw(0, 0)[1];
-  return { family, mode, params, transverse, constants, raw, rotation, output, undoOutput, projection, createProjection, bounds, center, contains, standardGeometry, origin, latitudeRange, domainLabel, surface };
+  return { family, mode, params, transverse, oblique, orientation, constants, raw, rotation, output, undoOutput, projection, createProjection, bounds, center, contains, standardGeometry, origin, latitudeRange, domainLabel, surface };
+};
+
+const rotateXY = ([x, y], angle) => {
+  const c = Math.cos(angle), s = Math.sin(angle);
+  return [c * x - s * y, s * x + c * y];
+};
+
+// Undo the spherical aspect rotation for a north-up globe. During unfolding,
+// remove only the out-of-plane tilt; the planar coordinate rotation remains.
+export const orientToWorld = (model, point, unfold = 0) => {
+  if (model.transverse) return [point[1], -point[0], point[2]];
+  if (!model.oblique) return point;
+  const [x, y] = rotateXY(point, model.orientation.roll);
+  const pitch = model.orientation.pitch * (1 - clamp(unfold, 0, 1));
+  return [x, Math.cos(pitch) * y - Math.sin(pitch) * point[2], Math.sin(pitch) * y + Math.cos(pitch) * point[2]];
 };
 
 export const projectedLines = (model, geometry) => {
@@ -184,14 +203,13 @@ export const surfacePoint = (model, point, unfold = 0, radius = 5) => {
     const anchor = model.surface.anchor * radius;
     position = [rho * opening * Math.sin(angle), vertical * Math.cos(tilt) - depth * Math.sin(tilt) + anchor * (1 - u), vertical * Math.sin(tilt) + depth * Math.cos(tilt) + Math.abs(n) * rho0 * (1 - u)];
   }
-  if (model.transverse) position = [position[1], -position[0], position[2]];
-  return position;
+  return orientToWorld(model, position, u);
 };
 
 export const sourcePoint = (model, point, radius = 5) => {
   const local = model.raw.invert(...model.undoOutput(point)).map((v) => v * RAD2DEG);
   const v = lonLatToVector(local, radius);
-  return model.transverse ? [v[1], -v[0], v[2]] : v;
+  return orientToWorld(model, v);
 };
 
 export const projectionLinks = (model, radius = 5) => {
@@ -219,11 +237,12 @@ export const projectionLinks = (model, radius = 5) => {
     let geometric = null;
     if (cylindrical) {
       const r = radius * Math.cos(model.params.standardParallel * DEG2RAD);
-      const radial = Math.hypot(source[model.transverse ? 1 : 0], source[2]);
+      const localSource = model.oblique ? lonLatToVector([lon, lat], radius) : source;
+      const radial = Math.hypot(localSource[model.transverse ? 1 : 0], localSource[2]);
       geometric = source.map(v => v * r / radial);
       const low = radius * model.raw(0, model.latitudeRange[0] * DEG2RAD)[1];
       const high = radius * model.raw(0, model.latitudeRange[1] * DEG2RAD)[1];
-      const axial = geometric[model.transverse ? 0 : 1];
+      const axial = model.oblique ? localSource[1] * r / radial : geometric[model.transverse ? 0 : 1];
       // Do not display a geometric landing point beyond the drawn auxiliary face.
       if (axial < low - 1e-7 || axial > high + 1e-7) continue;
     }

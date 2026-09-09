@@ -44,6 +44,37 @@ for lon0 in [-180, -90, 0, 110, 180]:
         x, y = oracle(lon, lat)
         payload.append(["equalEarth", "equalArea", {"centralMeridian": lon0}, [lon, lat]])
         expected.append((f"eqearth/{lon0}/{name}", x, y))
+# PROJ's general oblique rotation uses the old north pole expressed in the
+# new frame, plus the longitude opposite the new pole. Derive these from an
+# independent geographic tangent basis, not the app's Euler angles.
+for lonc, latc, azimuth in [(110, 35, 60), (-75, -30, 120), (20, 0, 35), (170, 60, 160)]:
+    lon, lat, alpha = map(math.radians, (lonc, latc, azimuth))
+    c = (math.cos(lat) * math.cos(lon), math.cos(lat) * math.sin(lon), math.sin(lat))
+    e = (-math.sin(lon), math.cos(lon), 0)
+    n = (-math.sin(lat) * math.cos(lon), -math.sin(lat) * math.sin(lon), math.cos(lat))
+    t = tuple(math.sin(alpha) * east + math.cos(alpha) * north for east, north in zip(e, n))
+    pole = (c[1] * t[2] - c[2] * t[1], c[2] * t[0] - c[0] * t[2], c[0] * t[1] - c[1] * t[0])
+    rotation = {"o_lat_p": math.degrees(math.asin(pole[2])), "o_lon_p": math.degrees(math.atan2(t[2], c[2])), "lon_0": math.degrees(math.atan2(pole[1], pole[0])) - 180}
+    beta = math.pi / 2 - alpha
+    for mode, projection in [("conformal", "merc"), ("equalArea", "cea"), ("compromise", "eqc")]:
+        for standard in [0, 30, 75]:
+            params = {"aspect": "oblique", "obliqueCenterLon": lonc, "obliqueCenterLat": latc, "obliqueAzimuth": azimuth, "standardParallel": standard}
+            oracle = Proj(proj="ob_tran", o_proj=projection, R=1, lat_ts=standard, **rotation)
+            for name, longitude, latitude in ANCHORS:
+                u, v = oracle(longitude, latitude)
+                x, y = math.cos(beta) * u - math.sin(beta) * v, math.sin(beta) * u + math.cos(beta) * v
+                payload.append(["cylinder", mode, params, [longitude, latitude]])
+                expected.append((f"ob_tran/{projection}/{lonc}/{latc}/{azimuth}/{standard}/{name}", x, y))
+            if mode == "conformal":
+                # Use the equivalent undirected bearing in Hotine's principal
+                # azimuth interval; ob_tran above checks the full input angle.
+                hotine_alpha = (azimuth + 90) % 180 - 90
+                hotine = Proj(proj="omerc", R=1, lonc=lonc, lat_0=latc, alpha=hotine_alpha, k_0=math.cos(math.radians(standard)))
+                for longitude, latitude in [(lonc, latc), (lonc + 5, latc + 3)]:
+                    x, y = hotine(longitude, latitude)
+                    payload.append(["cylinder", mode, params, [longitude, latitude]])
+                    expected.append((f"omerc/{lonc}/{latc}/{azimuth}/{standard}", x, y))
+
 js = """
 import {createProjectionModel} from './src/core/projectionModel.js';
 let input=''; for await (const chunk of process.stdin) input+=chunk;

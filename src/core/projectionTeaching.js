@@ -12,30 +12,34 @@ export const getProjectionTeaching = (family, mode, params) => {
     rays: '坐标映射连线', rayEnglish: 'Mathematical Mapping', source: false
   };
   if (family === 'cylinder') {
-    const common = params.aspect === 'transverse' ? 'λ、φ 为旋转后的轴向经纬度；展开后恢复北向朝上。' : 'λ 为相对中央经线的经差，φ 为纬度，k₀ = cos φₛ。';
+    const oblique = params.aspect === 'oblique';
+    const common = oblique
+      ? 'λ、φ 为旋转后的轴向经纬度，k₀ = cos φₛ。u、v 为轴向图面坐标；β = 90° − α，x = u cos β − v sin β，y = u sin β + v cos β。α 为中央线方位角，三角函数以弧度代入；全图不保证地理北向处处朝上。'
+      : params.aspect === 'transverse' ? 'λ、φ 为旋转后的轴向经纬度；展开后恢复北向朝上。' : 'λ 为相对中央经线的经差，φ 为纬度，k₀ = cos φₛ。';
     const line = cylindricalStandardComparison(mode, params);
     const construction = {
       rays: '几何参考与数学修正', rayEnglish: 'Reference / Correction', source: true,
       sourceLabel: '球心参考点 O', sourceEnglish: 'Geometric Reference',
       geometry: '圆柱半径 r = R cos φₛ。O 是球心几何参考点，不是该投影的真实光源。实线经过球面点 P，与圆柱相交于 G，得到 r tan φ。相割时 G 可能在 O 与 P 之间，不能一律理解为先经过球面再到辅助面。',
-      standardNote: line.latitude === 0 ? '赤道处，球面标准线与它的投影重合。蓝色表示原纬线，红色表示投影线，不是两个不同的纬度。'
+      standardNote: line.latitude === 0 ? `${oblique ? '轴向赤道（中央线）' : '赤道'}处，球面标准线与它的投影重合。蓝色表示原纬线，红色表示投影线，不是两个不同的纬度。`
         : `北侧 ${line.latitude}° 标准线：球面线的轴向坐标为 ${line.sphere.toFixed(3)} R，投影线为 ${line.mapped.toFixed(3)} R。它们是同一条纬线的两个空间位置，不必重合。`
     };
     if (mode === 'conformal') return {
-      formula: 'x = Rk₀λ；y = Rk₀ ln tan(π/4 + φ/2)',
+      formula: oblique ? 'u = Rk₀λ；v = Rk₀ ln tan(π/4 + φ/2)' : 'x = Rk₀λ；y = Rk₀ ln tan(π/4 + φ/2)',
       mapping: 'G 只是几何对照。真正的落点 M 用对数等距纬度确定高度，使经、纬方向的局部比例相等。橙色虚线 G 到 M 是数学修正，不是折射或弯曲的光线。',
       surface: '蓝线位于球面，红线表示同一纬线的投影。辅助圆柱半径 Rk₀；标准线的“比例为 1”不要求两个空间圆重合。',
       notation: common, ...construction
     };
     if (mode === 'equalArea') return {
-      formula: 'x = Rk₀λ；y = R sin φ / k₀',
+      formula: oblique ? 'u = Rk₀λ；v = R sin φ / k₀' : 'x = Rk₀λ；y = R sin φ / k₀',
       mapping: 'G 不是等面积投影结果。把高度改为 R sin φ / k₀ 得到 M，使两个方向的伸缩互为倒数、面积比例为 1。此处球心射线仅作几何对照，橙色虚线表示数学修正。',
-      surface: '辅助圆柱半径 Rk₀。割线纬度为 0° 时是兰伯特形式，30° 为贝尔曼形式，45° 为高尔–彼得斯形式。',
+      surface: oblique ? '辅助圆柱沿所选中央线大圆定位，半径 Rk₀。等面积条件作用于轴向经纬度；球面旋转与图面旋转均不改变面积比例。'
+        : '辅助圆柱半径 Rk₀。割线纬度为 0° 时是兰伯特形式，30° 为贝尔曼形式，45° 为高尔–彼得斯形式。',
       notation: common, ...construction
     };
     return {
-      formula: 'x = Rk₀λ；y = Rφ',
-      mapping: 'G 的高度 r tan φ 并不等距。等距圆柱把赤道到 P 的有向经线弧长 Rφ 作为 M 的高度，橙色虚线 G 到 M 就是这项数学修正；它不是光线折射，也不保持任意两点间距离。',
+      formula: oblique ? 'u = Rk₀λ；v = Rφ' : 'x = Rk₀λ；y = Rφ',
+      mapping: `G 的高度 r tan φ 并不等距。等距圆柱把${oblique ? '轴向赤道到 P 的有向轴向经线' : '赤道到 P 的有向经线'}弧长 Rφ 作为 M 的高度，橙色虚线 G 到 M 就是这项数学修正；它不是光线折射，也不保持任意两点间距离。`,
       surface: '标准纬线为赤道且正轴时，方格网形式称 Plate Carrée；改变割线纬度后仍属等距圆柱投影。',
       notation: common, ...construction
     };
