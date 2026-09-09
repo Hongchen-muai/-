@@ -1,13 +1,14 @@
 <template>
   <div ref="container" class="scene-container">
     <div v-if="status" class="scene-status" role="status">{{ status }}</div>
-    <span v-for="label in annotations" :key="label.text" class="point-label" :style="{ left: `${label.x}px`, top: `${label.y}px`, color: label.color }">{{ label.text }}</span>
+    <button v-for="label in annotations" :key="label.text" type="button" class="point-label" :data-help="annotationHelp(label.text, props.projectionFamily)" :aria-label="`${label.text} 的含义`" :style="{ left: `${label.x}px`, top: `${label.y}px`, color: label.color }" @click.stop>{{ label.text }}</button>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
 import { initScene, destroyScene, updateProjectionScene, replayProjectionDemo, goToProjectionStep, fitProjectionView } from '../core/threeApp.js';
+import { annotationHelp } from '../ui/projectionHelp.js';
 
 const props = defineProps({
   projectionFamily: {
@@ -90,7 +91,11 @@ onBeforeUnmount(() => {
 .point-label {
   position: absolute;
   z-index: 1;
-  pointer-events: none;
+  pointer-events: auto;
+  cursor: help;
+  border: 0;
+  border-bottom: 1px dotted currentColor;
+  border-radius: 0;
   padding: 0 3px;
   height: 20px;
   font: 600 13px/20px monospace;

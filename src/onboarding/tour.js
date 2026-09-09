@@ -1,25 +1,3 @@
-export const TOUR_STORAGE_KEY = 'map-projection-intro-v1';
-
-export function isTourDismissed(storage) {
-  try {
-    const value = JSON.parse(storage?.getItem(TOUR_STORAGE_KEY) ?? 'null');
-    return value?.version === 1 && value.dismissed === true;
-  } catch {
-    return false;
-  }
-}
-
-export function saveTourPreference(storage, dismissed) {
-  try {
-    if (!storage) return false;
-    if (dismissed) storage.setItem(TOUR_STORAGE_KEY, JSON.stringify({ version: 1, dismissed: true }));
-    else storage.removeItem(TOUR_STORAGE_KEY);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 const clipRect = (rect, width, height, padding = 0) => {
   const x = Math.max(0, rect.x - padding);
   const y = Math.max(0, rect.y - padding);

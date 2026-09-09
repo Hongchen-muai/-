@@ -6,18 +6,7 @@
         <h1>地图投影过程可视化教学平台</h1>
       </div>
 
-      <nav class="family-tabs" aria-label="投影类型栏">
-        <button
-          v-for="family in familyOptions"
-          :key="family.key"
-          :class="{ active: projectionFamily === family.key }"
-          :aria-pressed="projectionFamily === family.key"
-          @click="setFamily(family.key)"
-        >
-          <span>{{ family.label }}</span>
-          <small>{{ family.labelEn }}</small>
-        </button>
-      </nav>
+      <ProjectionMenu :options="familyOptions" :selected="projectionFamily" @select="setFamily" />
       <button class="icon-button intro-trigger" aria-label="入门导览" title="入门导览" @click="tourRef?.open()"><CircleHelp :size="19" /></button>
     </header>
 
@@ -58,17 +47,17 @@
             </div>
           </div>
           <div v-if="projectionParams.showStandardLine || projectionParams.showIndicatrix || (projectionParams.showRays && demoState.step === 1)" class="geometry-key" data-tour="legend" aria-label="几何图例">
-            <span v-if="projectionParams.showStandardLine && demoState.step < 2"><i class="key-source"></i>球面{{ projectionFamily === 'planar' ? '交圈 / 中心' : '标准线' }}</span>
-            <span v-if="projectionParams.showStandardLine"><i class="key-map"></i>{{ projectionFamily === 'planar' ? '对应投影' : '投影标准线' }}</span>
-            <span v-if="projectionParams.showRays && demoState.step === 1 && projectionFamily === 'cylinder'"><i class="key-correction"></i>G → M 数学修正</span>
-            <span v-if="projectionParams.showRays && demoState.step === 1 && isEqualEarth"><i class="key-correction"></i>P → M 坐标映射</span>
-            <span v-if="projectionParams.showIndicatrix"><i class="key-indicatrix"></i>等大小参考圆 / 一阶变形椭圆</span>
+            <span v-if="projectionParams.showStandardLine && demoState.step < 2" tabindex="0" :data-help="help.blue"><i class="key-source"></i>球面{{ projectionFamily === 'planar' ? '交圈 / 中心' : '标准线' }}</span>
+            <span v-if="projectionParams.showStandardLine" tabindex="0" :data-help="help.red"><i class="key-map"></i>{{ projectionFamily === 'planar' ? '对应投影' : '投影标准线' }}</span>
+            <span v-if="projectionParams.showRays && demoState.step === 1 && projectionFamily === 'cylinder'" tabindex="0" :data-help="help.correction"><i class="key-correction"></i>G → M 数学修正</span>
+            <span v-if="projectionParams.showRays && demoState.step === 1 && isEqualEarth" tabindex="0" :data-help="help.correction"><i class="key-correction"></i>P → M 坐标映射</span>
+            <span v-if="projectionParams.showIndicatrix" tabindex="0" :data-help="help.indicatrix"><i class="key-indicatrix"></i>等大小参考圆 / 一阶变形椭圆</span>
           </div>
 
           <div class="surface-summary">
-            <span>{{ surfaceMetrics.contact }}</span>
-            <span>{{ surfaceMetrics.primary }}</span>
-            <span v-if="surfaceMetrics.aspectLabel">{{ surfaceMetrics.aspectLabel }}</span>
+            <span tabindex="0" :data-help="help.surface">{{ surfaceMetrics.contact }}</span>
+            <span tabindex="0" :data-help="help.surface">{{ surfaceMetrics.primary }}</span>
+            <span v-if="surfaceMetrics.aspectLabel" tabindex="0" :data-help="isEqualEarth ? help.surface : help.aspect">{{ surfaceMetrics.aspectLabel }}</span>
           </div>
         </article>
 
@@ -78,7 +67,7 @@
               <span class="eyebrow">共享参数</span>
               <h2>{{ currentFamily.label }} · {{ currentMode.label }}</h2>
             </div>
-            <p>球面半径 R；角度单位为度。</p>
+            <p tabindex="0" :data-help="help.radius">球面半径 R；角度单位为度。</p>
           </div>
 
           <div class="parameter-column" data-tour="parameters">
@@ -91,45 +80,45 @@
               </div>
 
               <template v-if="projectionFamily === 'planar'">
-                <label class="param-row">
+                <label class="param-row" :data-help="help.projectionCenterLon">
                   <span>
                     投影中心经度
                     <small>Longitude of Projection Center</small>
                   </span>
                   <input type="number" :value="projectionParams.projectionCenterLon" @input="setNumber('projectionCenterLon', $event)" @change="setNumber('projectionCenterLon', $event)" @blur="setNumber('projectionCenterLon', $event)" @keydown.enter="$event.target.blur()" />
                 </label>
-                <input class="range" aria-label="投影中心经度滑块" type="range" min="-180" max="180" :value="projectionParams.projectionCenterLon" @input="setNumber('projectionCenterLon', $event)" />
+                <input class="range" :data-help="help.projectionCenterLon" aria-label="投影中心经度滑块" type="range" min="-180" max="180" :value="projectionParams.projectionCenterLon" @input="setNumber('projectionCenterLon', $event)" />
 
-                <label class="param-row">
+                <label class="param-row" :data-help="help.projectionCenterLat">
                   <span>
                     投影中心纬度
                     <small>Latitude of Projection Center</small>
                   </span>
                   <input type="number" :value="projectionParams.projectionCenterLat" @input="setNumber('projectionCenterLat', $event)" @change="setNumber('projectionCenterLat', $event)" @blur="setNumber('projectionCenterLat', $event)" @keydown.enter="$event.target.blur()" />
                 </label>
-                <input class="range" aria-label="投影中心纬度滑块" type="range" min="-90" max="90" :value="projectionParams.projectionCenterLat" @input="setNumber('projectionCenterLat', $event)" />
+                <input class="range" :data-help="help.projectionCenterLat" aria-label="投影中心纬度滑块" type="range" min="-90" max="90" :value="projectionParams.projectionCenterLat" @input="setNumber('projectionCenterLat', $event)" />
               </template>
 
               <template v-else>
-                <label class="param-row">
+                <label class="param-row" :data-help="help.centralMeridian">
                   <span>
                     中央经线
                     <small>Central Meridian</small>
                   </span>
                   <input type="number" :value="projectionParams.centralMeridian" @input="setNumber('centralMeridian', $event)" @change="setNumber('centralMeridian', $event)" @blur="setNumber('centralMeridian', $event)" @keydown.enter="$event.target.blur()" />
                 </label>
-                <input class="range" aria-label="中央经线滑块" type="range" min="-180" max="180" :value="projectionParams.centralMeridian" @input="setNumber('centralMeridian', $event)" />
+                <input class="range" :data-help="help.centralMeridian" aria-label="中央经线滑块" type="range" min="-180" max="180" :value="projectionParams.centralMeridian" @input="setNumber('centralMeridian', $event)" />
 
-                <label v-if="projectionFamily === 'conic'" class="param-row">
+                <label v-if="projectionFamily === 'conic'" class="param-row" :data-help="help.latitudeOfOrigin">
                   <span>
                     投影原点纬度
                     <small>Latitude of Projection Origin</small>
                   </span>
                   <input type="number" :value="projectionParams.latitudeOfOrigin" @input="setNumber('latitudeOfOrigin', $event)" @change="setNumber('latitudeOfOrigin', $event)" @blur="setNumber('latitudeOfOrigin', $event)" @keydown.enter="$event.target.blur()" />
                 </label>
-                <input v-if="projectionFamily === 'conic'" class="range" aria-label="投影原点纬度滑块" type="range" min="-80" max="80" :value="projectionParams.latitudeOfOrigin" @input="setNumber('latitudeOfOrigin', $event)" />
+                <input v-if="projectionFamily === 'conic'" class="range" :data-help="help.latitudeOfOrigin" aria-label="投影原点纬度滑块" type="range" min="-80" max="80" :value="projectionParams.latitudeOfOrigin" @input="setNumber('latitudeOfOrigin', $event)" />
 
-                <div v-if="projectionFamily === 'cylinder'" class="segmented-field">
+                <div v-if="projectionFamily === 'cylinder'" class="segmented-field" :data-help="help.aspect">
                   <span>
                     投影轴向
                     <small>Projection Aspect</small>
@@ -151,47 +140,47 @@
               </div>
 
               <template v-if="projectionFamily === 'cylinder'">
-                <label class="param-row">
+                <label class="param-row" :data-help="help.standardParallel">
                   <span>
                     {{ projectionParams.aspect === 'transverse' ? '轴向标准线角距' : '割线纬度（标准纬线）' }}
                     <small>Latitude of True Scale</small>
                   </span>
                   <input type="number" :value="projectionParams.standardParallel" @input="setNumber('standardParallel', $event)" @change="setNumber('standardParallel', $event)" @blur="setNumber('standardParallel', $event)" @keydown.enter="$event.target.blur()" />
                 </label>
-                <input class="range" aria-label="圆柱割线纬度滑块" type="range" min="0" max="75" :value="projectionParams.standardParallel" @input="setNumber('standardParallel', $event)" />
+                <input class="range" :data-help="help.standardParallel" aria-label="圆柱割线纬度滑块" type="range" min="0" max="75" :value="projectionParams.standardParallel" @input="setNumber('standardParallel', $event)" />
                 <p class="metric-note">{{ standardFeatures.label }}</p>
               </template>
 
               <template v-else-if="projectionFamily === 'planar'">
-                <label class="param-row">
+                <label class="param-row" :data-help="help.standardCircleDistance">
                   <span>
                     辅助平面交圈角距
                     <small>Auxiliary Plane Intersection</small>
                   </span>
                   <input type="number" :value="projectionParams.standardCircleDistance" @input="setNumber('standardCircleDistance', $event)" @change="setNumber('standardCircleDistance', $event)" @blur="setNumber('standardCircleDistance', $event)" @keydown.enter="$event.target.blur()" />
                 </label>
-                <input class="range" aria-label="辅助平面交圈角距滑块" type="range" min="0" max="75" :value="projectionParams.standardCircleDistance" @input="setNumber('standardCircleDistance', $event)" />
+                <input class="range" :data-help="help.standardCircleDistance" aria-label="辅助平面交圈角距滑块" type="range" min="0" max="75" :value="projectionParams.standardCircleDistance" @input="setNumber('standardCircleDistance', $event)" />
                 <p class="metric-note">{{ standardFeatures.label }}</p>
               </template>
 
               <template v-else>
-                <label class="param-row">
+                <label class="param-row" :data-help="help.standardParallel1">
                   <span>
                     第一割线纬度
                     <small>First Standard Parallel</small>
                   </span>
                   <input type="number" :value="projectionParams.standardParallel1" @input="setNumber('standardParallel1', $event)" @change="setNumber('standardParallel1', $event)" @blur="setNumber('standardParallel1', $event)" @keydown.enter="$event.target.blur()" />
                 </label>
-                <input class="range" aria-label="第一割线纬度滑块" type="range" min="-80" max="80" :value="projectionParams.standardParallel1" @input="setNumber('standardParallel1', $event)" />
+                <input class="range" :data-help="help.standardParallel1" aria-label="第一割线纬度滑块" type="range" min="-80" max="80" :value="projectionParams.standardParallel1" @input="setNumber('standardParallel1', $event)" />
 
-                <label class="param-row">
+                <label class="param-row" :data-help="help.standardParallel2">
                   <span>
                     第二割线纬度
                     <small>Second Standard Parallel</small>
                   </span>
                   <input type="number" :value="projectionParams.standardParallel2" @input="setNumber('standardParallel2', $event)" @change="setNumber('standardParallel2', $event)" @blur="setNumber('standardParallel2', $event)" @keydown.enter="$event.target.blur()" />
                 </label>
-                <input class="range" aria-label="第二割线纬度滑块" type="range" min="-80" max="80" :value="projectionParams.standardParallel2" @input="setNumber('standardParallel2', $event)" />
+                <input class="range" :data-help="help.standardParallel2" aria-label="第二割线纬度滑块" type="range" min="-80" max="80" :value="projectionParams.standardParallel2" @input="setNumber('standardParallel2', $event)" />
                 <p class="metric-note">{{ standardFeatures.label }}</p>
               </template>
             </section>
@@ -211,23 +200,23 @@
                 </div>
               </div>
               <div class="check-list">
-                <label class="check-row">
+                <label class="check-row" :data-help="help.surface">
                   <input type="checkbox" :checked="projectionParams.showSurface" @change="setBoolean('showSurface', $event)" />
                   <span>{{ isEqualEarth ? '数学投影平面' : '辅助投影面' }} <small>{{ isEqualEarth ? 'Coordinate Plane' : 'Auxiliary Surface' }}</small></span>
                 </label>
-                <label v-if="teaching.source" class="check-row">
+                <label v-if="teaching.source" class="check-row" :data-help="help.source">
                   <input type="checkbox" :checked="projectionParams.showLightSource" @change="setBoolean('showLightSource', $event)" />
                   <span>{{ teaching.sourceLabel }} <small>{{ teaching.sourceEnglish }}</small></span>
                 </label>
-                <label class="check-row">
+                <label class="check-row" :data-help="help.rays">
                   <input type="checkbox" :checked="projectionParams.showRays" @change="setBoolean('showRays', $event)" />
                   <span>{{ teaching.rays }} <small>{{ teaching.rayEnglish || (teaching.source || (projectionFamily === 'planar' && projectionMode === 'compromise') ? 'Projection Rays' : 'Coordinate Mapping') }}</small></span>
                 </label>
-                <label class="check-row">
+                <label class="check-row" :data-help="help.projectedImage">
                   <input type="checkbox" :checked="projectionParams.showProjectedImage" @change="setBoolean('showProjectedImage', $event)" />
                   <span>投影地图 <small>Projected Map</small></span>
                 </label>
-                <label class="check-row" data-tour="indicatrices">
+                <label class="check-row" :data-help="help.indicatrix" data-tour="indicatrices">
                   <input type="checkbox" :checked="projectionParams.showIndicatrix" @change="setBoolean('showIndicatrix', $event)" />
                   <span>参考圆 / 变形椭圆 <small>Linked Indicatrices</small></span>
                 </label>
@@ -242,15 +231,15 @@
                 </div>
               </div>
               <div class="check-list">
-                <label class="check-row">
+                <label class="check-row" :data-help="help.graticule">
                   <input type="checkbox" :checked="projectionParams.showGraticule" @change="setBoolean('showGraticule', $event)" />
                   <span>显示经纬网 <small>Graticule</small></span>
                 </label>
-                <label class="check-row">
+                <label class="check-row" :data-help="help.standard">
                   <input type="checkbox" :checked="projectionParams.showStandardLine" @change="setBoolean('showStandardLine', $event)" />
                   <span>{{ projectionFamily === 'planar' ? '交圈 / 中心点' : '标准线（真比例）' }} <small>Reference Geometry</small></span>
                 </label>
-                <label class="check-row">
+                <label class="check-row" :data-help="help.indicatrix">
                   <input type="checkbox" :checked="projectionParams.showIndicatrix" @change="setBoolean('showIndicatrix', $event)" />
                   <span>变形椭圆（双视图） <small>Tissot Indicatrix</small></span>
                 </label>
@@ -284,7 +273,7 @@
           </div>
           <div>
             <template v-if="projectionFamily === 'cylinder'">
-              <h4 :class="{ 'active-explanation': constructionPhase === 'mathematics' }">G → M：按{{ currentMode.label === '常用投影' ? '等距条件' : currentMode.label + '条件' }}确定实际投影</h4>
+              <h4 :class="{ 'active-explanation': constructionPhase === 'mathematics' }">G → M：按{{ projectionMode === 'compromise' ? '等距条件' : currentMode.label + '条件' }}确定实际投影</h4>
             </template>
             <p>{{ projectionFamily === 'cylinder' ? teaching.mapping : demoState.step === 0 ? teaching.surface : demoState.step === 1 ? teaching.mapping : teaching.flat || '展开后的坐标服从同一投影公式。球面到辅助面的映射一般发生变形；辅助圆柱或圆锥的展开不再改变面内长度。' }}</p>
             <p v-if="projectionFamily === 'cylinder' && demoState.step === 2">圆柱展开只改变空间姿态，不再改变面内长度；最终坐标与右侧相同。</p>
@@ -292,12 +281,13 @@
           </div>
         </div>
         <div class="formula-band">
-          <p class="formula">{{ teaching.formula }}</p>
+          <p class="formula" tabindex="0" :data-help="help.notation">{{ teaching.formula }}</p>
           <p class="notation">{{ teaching.notation }}</p>
         </div>
       </section>
     </main>
     <OnboardingTour ref="tourRef" />
+    <ContextHelp />
   </div>
 </template>
 
@@ -307,6 +297,9 @@ import { RotateCcw, Maximize2, ChevronLeft, ChevronRight, Globe2, Cone, Map, Lay
 import Scene3D from './components/Scene3D.vue';
 import OnboardingTour from './components/OnboardingTour.vue';
 import Map2D from './components/Map2D.vue';
+import ContextHelp from './components/ContextHelp.vue';
+import ProjectionMenu from './components/ProjectionMenu.vue';
+import { projectionHelp } from './ui/projectionHelp.js';
 import {
   PROJECTION_FAMILIES,
   PROJECTION_MODES,
@@ -338,6 +331,7 @@ const constructionPhase = ref('');
 const steps = computed(() => isEqualEarth.value ? ['球面坐标', '等面积映射', '平面结果'] : ['辅助面', '投影映射', '平面结果']);
 const details = computed(() => getProjectionDetails(projectionFamily.value, projectionMode.value, projectionParams.value));
 const teaching = computed(() => getProjectionTeaching(projectionFamily.value, projectionMode.value, projectionParams.value));
+const help = computed(() => projectionHelp(projectionFamily.value, projectionMode.value, projectionParams.value));
 const indicatrixExplanation = computed(() => projectionMode.value === 'conformal'
   ? '等角：展开正视时，微小圆仍为圆，大小可以不同。'
   : projectionMode.value === 'equalArea' ? '等面积：对应椭圆的面积相同，但形状可以不同。'
@@ -456,7 +450,7 @@ button {
   top: 0;
   z-index: 20;
   display: grid;
-  grid-template-columns: minmax(280px, 0.55fr) minmax(440px, 1fr) 38px;
+  grid-template-columns: minmax(0, 1fr) 232px 38px;
   gap: 16px;
   align-items: center;
   padding: 12px 22px;
@@ -483,14 +477,12 @@ button {
   text-transform: uppercase;
 }
 
-.family-tabs,
 .mode-tabs,
 .segmented-control {
   display: flex;
   gap: 8px;
 }
 
-.family-tabs button,
 .mode-tabs button,
 .segmented-control button,
 .icon-button {
@@ -500,31 +492,6 @@ button {
   transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
 }
 
-.family-tabs button {
-  flex: 1;
-  min-width: 0;
-  padding: 8px 14px;
-  text-align: left;
-}
-
-.family-tabs button span,
-.family-tabs button small {
-  display: block;
-}
-
-.family-tabs button span {
-  color: #333333;
-  font-weight: 800;
-  font-size: 0.96rem;
-}
-
-.family-tabs button small {
-  margin-top: 2px;
-  color: #777777;
-  font-family: "Segoe UI", Arial, sans-serif;
-  font-size: 0.74rem;
-  text-transform: uppercase;
-}
 
 .mode-tabs {
   justify-content: flex-end;
@@ -536,7 +503,6 @@ button {
   font-weight: 800;
 }
 
-.family-tabs button:hover,
 .mode-tabs button:hover,
 .segmented-control button:hover,
 .icon-button:hover {
@@ -545,7 +511,6 @@ button {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
-.family-tabs button.active,
 .mode-tabs button.active,
 .segmented-control button.active {
   background: linear-gradient(135deg, #3c5b4c 0%, #333333 100%);
@@ -553,15 +518,11 @@ button {
   color: #ffffff;
 }
 
-.family-tabs button.active span,
-.family-tabs button.active small {
-  color: #ffffff;
-}
-
 .main-content {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  min-width: 0;
   padding: 16px 22px 24px;
 }
 
@@ -906,14 +867,6 @@ button:focus-visible, input:focus-visible { outline: 2px solid #477563; outline-
   }
 }
 
-@media (max-width: 1100px) {
-  .top-bar {
-    grid-template-columns: 1fr 38px;
-  }
-  .family-tabs { grid-row: 2; grid-column: 1 / -1; }
-  .intro-trigger { grid-column: 2; grid-row: 1; }
-}
-
 @media (max-width: 1180px) {
   .workspace-grid {
     grid-template-columns: 1fr 1fr;
@@ -937,14 +890,6 @@ button:focus-visible, input:focus-visible { outline: 2px solid #477563; outline-
     min-height: 0;
   }
 
-  .family-tabs {
-    overflow-x: auto;
-  }
-
-  .family-tabs button {
-    min-width: 0;
-  }
-
   .panel-head {
     flex-direction: row;
     min-height: 120px;
@@ -962,14 +907,12 @@ button:focus-visible, input:focus-visible { outline: 2px solid #477563; outline-
 }
 
 @media (max-width: 600px) {
-  .top-bar { position: static; padding: 12px; gap: 12px; }
+  .top-bar { position: relative; padding: 12px; gap: 10px; grid-template-columns: minmax(0, 1fr) 38px; }
+  .top-bar .projection-selector { grid-column: 1 / -1; grid-row: 2; }
+  .intro-trigger { grid-column: 2; grid-row: 1; }
   .brand-block h1 { font-size: 18px; }
   .shared-parameter-panel { display: block; }
   .display-controls { margin-top: 14px; }
-  .family-tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
-  .family-tabs button { padding: 9px 7px; }
-  .family-tabs button span { font-size: 13px; }
-  .family-tabs button small { font-size: 10px; }
   .main-content { padding: 10px; }
   .workspace-grid { gap: 10px; }
   .scene-stage { height: 430px; }

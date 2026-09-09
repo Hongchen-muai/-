@@ -43,7 +43,6 @@
             </template>
           </div>
           <footer class="intro-footer">
-            <label class="intro-preference"><input v-model="dismissed" type="checkbox" @change="persistPreference" />我已了解，以后不再提示</label>
             <div class="intro-navigation">
               <button class="intro-icon" aria-label="上一项" title="上一项" :disabled="index === 0" @click="move(-1)"><ChevronLeft :size="18" /></button>
               <span class="intro-progress" aria-live="polite">{{ index + 1 }} / {{ TOUR_STEPS.length }}</span>
@@ -53,29 +52,25 @@
         </section>
       </template>
     </dialog>
-    <p v-if="storageWarning" class="intro-storage-warning" role="status">浏览器未允许保存偏好，下次可能再次提示。</p>
   </Teleport>
 </template>
 
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import { ArrowRight, Check, ChevronLeft, ChevronRight, Globe2, Map, X } from 'lucide-vue-next';
-import { TOUR_STEPS, isTourDismissed, saveTourPreference, tourLayout } from '../onboarding/tour.js';
+import { TOUR_STEPS, tourLayout } from '../onboarding/tour.js';
 
 const dialogRef = ref(null);
 const headingRef = ref(null);
 const bodyRef = ref(null);
 const opened = ref(false);
 const index = ref(0);
-const dismissed = ref(false);
-const storageWarning = ref(false);
 const step = computed(() => TOUR_STEPS[index.value]);
 const layout = ref({ holes: [], tiles: [], panel: {} });
 let originalScroll, originalFocus, originalOverflow;
-let frame = 0, repositionFrame = 0, openTimer = 0, warningTimer = 0;
+let frame = 0, repositionFrame = 0;
 let observer;
 
-const storage = () => { try { return window.localStorage; } catch { return null; } };
 const rectStyle = r => ({ left: `${r.x}px`, top: `${r.y}px`, width: `${r.width}px`, height: `${r.height}px` });
 function targets() {
   const elements = step.value.targets.map(name => document.querySelector(`[data-tour="${name}"]`)).filter(Boolean);
@@ -116,12 +111,10 @@ async function focusStep() {
   if (bodyRef.value) bodyRef.value.scrollTop = 0;
 }
 async function open() {
-  clearTimeout(openTimer);
   if (opened.value) return;
   originalFocus = document.activeElement;
   originalScroll = { x: window.scrollX, y: window.scrollY };
   originalOverflow = document.body.style.overflow;
-  dismissed.value = isTourDismissed(storage());
   index.value = 0;
   opened.value = true;
   document.body.style.overflow = 'hidden';
@@ -139,16 +132,8 @@ function restorePage() {
   cancelAnimationFrame(frame);
   cancelAnimationFrame(repositionFrame);
 }
-function persistPreference() {
-  storageWarning.value = !saveTourPreference(storage(), dismissed.value);
-  clearTimeout(warningTimer);
-  if (storageWarning.value) {
-    warningTimer = window.setTimeout(() => { storageWarning.value = false; }, 6000);
-  }
-}
 function close() {
   if (!opened.value) return;
-  persistPreference();
   opened.value = false;
   dialogRef.value.close();
   restorePage();
@@ -174,11 +159,8 @@ onMounted(() => {
   observer = new ResizeObserver(scheduleMeasure);
   window.addEventListener('resize', onResize);
   window.addEventListener('scroll', scheduleMeasure, { passive: true });
-  if (!isTourDismissed(storage())) openTimer = window.setTimeout(open, 350);
 });
 onBeforeUnmount(() => {
-  clearTimeout(openTimer);
-  clearTimeout(warningTimer);
   cancelAnimationFrame(frame);
   cancelAnimationFrame(repositionFrame);
   observer?.disconnect();
@@ -208,9 +190,7 @@ defineExpose({ open });
 .intro-icon { width: 32px; height: 32px; padding: 0; flex: 0 0 32px; display: inline-grid; place-items: center; border: 1px solid #e0e0e0; background: #fff; color: #555; }
 .intro-icon:hover { background: #f1f4f2; }
 .intro-footer { border-top: 1px solid #e0e0e0; margin-top: 10px; padding-top: 12px; }
-.intro-preference { display: flex; align-items: center; gap: 7px; font-size: 12px; cursor: pointer; }
-.intro-preference input { accent-color: #3c5b4c; width: 15px; height: 15px; margin: 0; flex-shrink: 0; }
-.intro-navigation { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+.intro-navigation { display: flex; align-items: center; gap: 10px; }
 .intro-progress { color: #777; font-size: 12px; font-variant-numeric: tabular-nums; }
 .intro-next { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 6px 12px; background: #3c5b4c; border: 1px solid #3c5b4c; color: #fff; font-size: 13px; }
 .intro-next:hover { background: #304c3e; }
@@ -232,7 +212,6 @@ defineExpose({ open });
 @property --intro-stretch { syntax: '<number>'; initial-value: 1; inherits: false; }
 .sample-ellipse { animation: ellipse-stretch 4s ease-in-out infinite; transform: scale(var(--intro-stretch), calc(1 / var(--intro-stretch))); }
 @keyframes ellipse-stretch { 0%, 100% { --intro-stretch: 1; } 50% { --intro-stretch: 1.5; } }
-.intro-storage-warning { position: fixed; bottom: 16px; left: 16px; right: 16px; z-index: 100; margin: 0; padding: 10px 14px; background: #fff; border: 1px solid #e0e0e0; font-size: 13px; }
 @media (max-width: 600px) {
   .intro-board { padding: 12px 14px; }
   .intro-head { padding-bottom: 8px; }
@@ -240,7 +219,6 @@ defineExpose({ open });
   .intro-body { font-size: 13px; }
   .intro-pair, .intro-ellipse-diagram { height: 60px; gap: 24px; }
   .intro-footer { padding-top: 8px; margin-top: 6px; }
-  .intro-navigation { margin-top: 9px; }
 }
 @media (prefers-reduced-motion: reduce) { .sample-ellipse { animation: none; transform: scale(1.5, 0.6666667); } }
 </style>

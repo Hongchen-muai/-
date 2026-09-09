@@ -1,27 +1,5 @@
 import assert from 'node:assert/strict';
-import { isTourDismissed, saveTourPreference, tourLayout, TOUR_STORAGE_KEY } from '../src/onboarding/tour.js';
-
-let stored = null;
-const storage = {
-  getItem(key) { assert.equal(key, TOUR_STORAGE_KEY); return stored; },
-  setItem(key, value) { assert.equal(key, TOUR_STORAGE_KEY); stored = value; },
-  removeItem(key) { assert.equal(key, TOUR_STORAGE_KEY); stored = null; }
-};
-assert.equal(isTourDismissed(storage), false);
-assert.equal(saveTourPreference(storage, true), true);
-assert.equal(isTourDismissed(storage), true);
-assert.equal(saveTourPreference(storage, false), true);
-assert.equal(isTourDismissed(storage), false);
-for (const value of ['{', 'null', 'true', '{"dismissed":true}', '{"version":2,"dismissed":true}', '{"version":1,"dismissed":"true"}']) {
-  stored = value;
-  assert.equal(isTourDismissed(storage), false);
-}
-const denied = new Proxy({}, { get() { throw new Error('Storage denied'); } });
-for (const unavailable of [undefined, null, denied]) {
-  assert.equal(isTourDismissed(unavailable), false);
-  assert.equal(saveTourPreference(unavailable, true), false);
-  assert.equal(saveTourPreference(unavailable, false), false);
-}
+import { tourLayout } from '../src/onboarding/tour.js';
 
 const area = r => r.width * r.height;
 const intersection = (a, b) => Math.max(0, Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x))
@@ -57,4 +35,4 @@ for (const [width, height] of [[320, 568], [390, 844], [768, 1024], [1024, 768],
     cases++;
   }
 }
-console.log(`Onboarding: storage preferences and ${cases} responsive spotlight layouts passed.`);
+console.log(`Onboarding: ${cases} responsive spotlight layouts passed.`);

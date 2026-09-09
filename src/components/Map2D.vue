@@ -7,13 +7,14 @@
         <p>{{ details.titleEn }} · {{ details.property }}</p>
       </div>
       <div class="map-actions">
-        <span v-if="props.projectionFamily === 'equalEarth'" class="projection-property">等面积伪圆柱投影</span>
+        <span v-if="props.projectionFamily === 'equalEarth'" class="projection-property" tabindex="0" :data-help="help.surface">等面积伪圆柱投影</span>
         <div v-else class="mode-tabs" aria-label="二维投影性质">
           <button
             v-for="mode in modeOptions"
             :key="mode.key"
             :class="{ active: props.projectionMode === mode.key }"
             :aria-pressed="props.projectionMode === mode.key"
+            :data-help="help[mode.key]"
             @click="emit('update:projectionMode', mode.key)"
           >
             {{ mode.label }}
@@ -23,7 +24,7 @@
     </div>
 
     <div class="map-canvas" data-tour="map" ref="wrapperRef" @wheel.prevent="handleWheelScale">
-      <div class="scale-overlay">
+      <div class="scale-overlay" :data-help="help.viewScale">
         <div class="scale-head">
           <span>显示缩放 / %</span>
           <input aria-label="二维显示缩放" type="number" min="60" max="180" :value="params.viewScale" @input="handleScaleInput" @change="handleScaleInput" @blur="handleScaleInput" @keydown.enter="$event.target.blur()" />
@@ -66,6 +67,7 @@ import { PROJECTION_MODES, getProjectionDetails, normalizeProjectionParams } fro
 import { createProjectionModel, fitProjection, SPHERE, GRATICULE } from '../core/projectionModel.js';
 import { getIndicatrices, INDICATRIX_RADIUS } from '../core/indicatrix.js';
 import { loadWorldData } from '../core/worldData.js';
+import { projectionHelp } from '../ui/projectionHelp.js';
 
 const props = defineProps({
   projectionFamily: { type: String, default: 'cylinder' },
@@ -81,6 +83,7 @@ let disposed = false;
 const params = computed(() => normalizeProjectionParams(props.projectionFamily, props.projectionMode, props.projectionParams));
 const model = computed(() => createProjectionModel(props.projectionFamily, props.projectionMode, params.value));
 const details = computed(() => getProjectionDetails(props.projectionFamily, props.projectionMode, params.value));
+const help = computed(() => projectionHelp(props.projectionFamily, props.projectionMode, params.value));
 const modeOptions = Object.values(PROJECTION_MODES);
 
 const indicatrices = (projection) => {

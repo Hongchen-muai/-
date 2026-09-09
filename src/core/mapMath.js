@@ -33,7 +33,7 @@ export const PROJECTION_FAMILIES = {
 export const PROJECTION_MODES = {
   conformal: { key: 'conformal', label: '等角', labelEn: 'Conformal' },
   equalArea: { key: 'equalArea', label: '等面积', labelEn: 'Equal-Area' },
-  compromise: { key: 'compromise', label: '常用投影', labelEn: 'Common Projection' }
+  compromise: { key: 'compromise', label: '任意投影', labelEn: 'Arbitrary Projection' }
 };
 
 export const PROJECTION_CONFIG = {
